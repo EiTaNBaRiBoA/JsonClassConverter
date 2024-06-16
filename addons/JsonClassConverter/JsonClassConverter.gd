@@ -130,3 +130,4 @@ static func convert_array_to_json(array: Array) -> Array:
 		else:
 			json_array.append(element) 
 	return json_array
+#endregion
