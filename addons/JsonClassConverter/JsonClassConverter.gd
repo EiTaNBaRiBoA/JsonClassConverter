@@ -44,7 +44,7 @@ static func json_string_to_class(castClass : GDScript , json_string: String) -> 
 		printerr("the passing cast is null")
 		return null
 	var json = JSON.new()
-	var parse_result: Error = json.parse_string(json_string)
+	var parse_result: Error = json.parse(json_string)
 	if parse_result == Error.OK:
 		return json_to_class(castClass,json.data)
 	return castClass.new()
