@@ -58,13 +58,13 @@ static func json_to_class(castClass : GDScript, json: Dictionary) -> Object:
 		for property in properties:
 			if property.name == "script": continue
 			if property.name == key and property.usage >= PropertyUsageFlags.PROPERTY_USAGE_SCRIPT_VARIABLE:
-				if (property["class_name"] in ["Reference", "Object"] and property["type"] == 17):
+				if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
 					_class.set(key, json_to_class(json[key], _class.get(key)))
 				else:
 					_class.set(key, json[key])
 				break
 			if key == property.hint_string and property.usage >= PropertyUsageFlags.PROPERTY_USAGE_SCRIPT_VARIABLE:
-				if (property["class_name"] in ["Reference", "Object"] and property["type"] == 17):
+				if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
 					_class.set(property.name, json_to_class(json[key], _class.get(key)))
 				else:
 					_class.set(property.name, json[key])
@@ -106,15 +106,17 @@ static func class_to_json(_class: Object) -> Dictionary:
 		var property_value = _class.get(property_name)
 		if not property_name.is_empty() and property.usage >= PropertyUsageFlags.PROPERTY_USAGE_SCRIPT_VARIABLE:
 			
-			if (property["class_name"] in ["Reference", "Object"] and property["type"] == 17):
+			if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
 				dictionary[property.name] = class_to_json(property_value)
 			elif property_value is Array:
 				# Handle arrays by recursively converting elements if necessary
 				dictionary[property_name] = convert_array_to_json(property_value)
+			elif property["type"] == TYPE_OBJECT and property_value.get_property_list():
+				dictionary[property.name] = class_to_json(property_value)
 			else:
 				dictionary[property.name] = property_value
 		elif not property["hint_string"].is_empty() and property.usage >= PropertyUsageFlags.PROPERTY_USAGE_SCRIPT_VARIABLE:
-			if (property["class_name"] in ["Reference", "Object"] and property["type"] == 17):
+			if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
 				dictionary[property.hint_string] = class_to_json(property_value)
 			else:
 				dictionary[property.hint_string] = property_value
