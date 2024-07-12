@@ -150,6 +150,8 @@ static func class_to_json(_class: Object) -> Dictionary:
 			elif property_value is Array:
 				# Handle arrays by recursively converting elements if necessary
 				dictionary[property_name] = convert_array_to_json(property_value)
+			elif property_value is Dictionary:
+				dictionary[property_name] = convert_dictionary_to_json(property_value)
 			elif property["type"] == TYPE_OBJECT and property_value.get_property_list():
 				dictionary[property.name] = class_to_json(property_value)
 			else:
@@ -168,8 +170,26 @@ static func convert_array_to_json(array: Array) -> Array:
 			json_array.append(class_to_json(element))
 		elif element is Array:
 			json_array.append(convert_array_to_json(element)) # Recursive call for nested arrays
+		elif element is Dictionary:
+			json_array.append(convert_dictionary_to_json(element))
 		else:
 			json_array.append(element) 
 		#json_array.append() ## Adding className
 	return json_array
+
+
+# Helper function to recursively convert dictionaries
+static func convert_dictionary_to_json(dictionary: Dictionary) -> Dictionary:
+	var json_dictionary: Dictionary = {}
+	for key in dictionary.keys():
+		var value = dictionary[key]
+		if value is Object:
+			json_dictionary[key] = class_to_json(value)
+		elif value is Array:
+			json_dictionary[key] = convert_array_to_json(value)
+		elif value is Dictionary:
+			json_dictionary[key] = convert_dictionary_to_json(value) # Recursive call for nested dictionaries
+		else:
+			json_dictionary[key] = value
+	return json_dictionary
 #endregion
