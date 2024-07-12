@@ -54,22 +54,58 @@ static func json_string_to_class(castClass : GDScript , json_string: String) -> 
 static func json_to_class(castClass : GDScript, json: Dictionary) -> Object:
 	var _class = castClass.new()
 	var properties: Array = _class.get_property_list()
+
 	for key in json.keys():
 		for property in properties:
-			if property.name == "script": continue
-			if property.name == key and property.usage >= PropertyUsageFlags.PROPERTY_USAGE_SCRIPT_VARIABLE:
+			if property.name == "script": 
+				continue
+			var property_value = _class.get(property.name)
+			var value = json[key]
+			if property.name == key and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
 				if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
-					_class.set(key, json_to_class(json[key], _class.get(key)))
+					_class.set(property.name, json_to_class(load(property["class_name"]),json[key]))
+				elif property_value is not Array and property.type == TYPE_OBJECT:
+					var innerClassPath : String = ""
+					for innerProperty in property_value.get_property_list():
+						if innerProperty.has("hint_string") and innerProperty["hint_string"].contains(".gd"):
+							innerClassPath = innerProperty["hint_string"]
+					_class.set(property.name, json_to_class(load(innerClassPath),json[key])) ## loading class
+				elif property_value is Array:
+					if property.has("hint_string"):
+						var classHint = property["hint_string"]
+						if classHint.contains(":"):
+							classHint = classHint.split(":")[1] # Assuming format "24/34:Class"
+						for obj in convert_json_to_array(value,getGDScript(classHint)):
+							_class.get(property.name).append(obj)
 				else:
-					_class.set(key, json[key])
-				break
-			if key == property.hint_string and property.usage >= PropertyUsageFlags.PROPERTY_USAGE_SCRIPT_VARIABLE:
+					_class.set(property.name, json[key])
+				
+			if key == property.hint_string and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
 				if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
 					_class.set(property.name, json_to_class(json[key], _class.get(key)))
 				else:
 					_class.set(property.name, json[key])
-				break
+				
 	return _class
+
+static func getGDScript(hint_class : String) -> GDScript:
+	for className in ProjectSettings.get_global_class_list():
+		if className.class == hint_class:
+			return load(className.path)
+	return null
+	
+# Helper function to recursively convert JSON arrays to Godot arrays
+static func convert_json_to_array(json_array: Array,castClass : GDScript = null) -> Array:
+	var godot_array: Array = []
+	for element in json_array:
+		if typeof(element) == TYPE_DICTIONARY: ## if it's an dictionary it could contain objects as values
+			godot_array.append(json_to_class(castClass, element))  # Assuming each dictionary represents a class instance
+		elif typeof(element) == TYPE_ARRAY:
+			godot_array.append(convert_json_to_array(element))  # Recursive call for nested arrays
+		else:
+			godot_array.append(element)
+	return godot_array
+
 
 #endregion
 
@@ -104,7 +140,7 @@ static func class_to_json(_class: Object) -> Dictionary:
 		var property_name = property["name"]
 		if property_name == "script": continue
 		var property_value = _class.get(property_name)
-		if not property_name.is_empty() and property.usage >= PropertyUsageFlags.PROPERTY_USAGE_SCRIPT_VARIABLE:
+		if not property_name.is_empty() and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
 			
 			if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
 				dictionary[property.name] = class_to_json(property_value)
@@ -115,7 +151,7 @@ static func class_to_json(_class: Object) -> Dictionary:
 				dictionary[property.name] = class_to_json(property_value)
 			else:
 				dictionary[property.name] = property_value
-		elif not property["hint_string"].is_empty() and property.usage >= PropertyUsageFlags.PROPERTY_USAGE_SCRIPT_VARIABLE:
+		elif not property["hint_string"].is_empty() and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
 			if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
 				dictionary[property.hint_string] = class_to_json(property_value)
 			else:
