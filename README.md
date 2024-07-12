@@ -108,6 +108,6 @@ player.inventory = ["Sword", "Potion"]
 JsonClassConverter.store_json_file("player.sav", "user://", JsonClassConverter.class_to_json(player))
 
 # Load from file
-var new_player = JsonClassConverter.load_json_file(PlayerData, "player.sav", "user://")
+var new_player : PlayerData = JsonClassConverter.load_json_file(PlayerData, "player.sav", "user://")
 
 print(new_player.name) # Prints: Bob
