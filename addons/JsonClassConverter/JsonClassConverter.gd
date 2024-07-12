@@ -99,6 +99,8 @@ static func convert_json_to_array(json_array: Array,castClass : GDScript = null)
 	var godot_array: Array = []
 	for element in json_array:
 		if typeof(element) == TYPE_DICTIONARY: ## if it's an dictionary it could contain objects as values
+			if castClass == null:
+				castClass = getGDScript(element["ScriptName"])
 			godot_array.append(json_to_class(castClass, element))  # Assuming each dictionary represents a class instance
 		elif typeof(element) == TYPE_ARRAY:
 			godot_array.append(convert_json_to_array(element))  # Recursive call for nested arrays
@@ -135,6 +137,7 @@ static func class_to_json_string(_class: Object) -> String:
 ## Convert class to JSON dictionary
 static func class_to_json(_class: Object) -> Dictionary:
 	var dictionary: Dictionary = {}
+	dictionary["ScriptName"] = _class.get_script().get_global_name() ## this is later to help identify non typed arrays
 	var properties: Array = _class.get_property_list()
 	for property in properties:
 		var property_name = property["name"]
@@ -167,5 +170,6 @@ static func convert_array_to_json(array: Array) -> Array:
 			json_array.append(convert_array_to_json(element)) # Recursive call for nested arrays
 		else:
 			json_array.append(element) 
+		#json_array.append() ## Adding className
 	return json_array
 #endregion
