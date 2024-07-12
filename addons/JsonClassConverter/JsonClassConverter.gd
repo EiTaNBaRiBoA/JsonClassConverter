@@ -62,9 +62,7 @@ static func json_to_class(castClass : GDScript, json: Dictionary) -> Object:
 			var property_value = _class.get(property.name)
 			var value = json[key]
 			if property.name == key and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
-				if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
-					_class.set(property.name, json_to_class(load(property["class_name"]),json[key]))
-				elif property_value is not Array and property.type == TYPE_OBJECT:
+				if property_value is not Array and property.type == TYPE_OBJECT:
 					var innerClassPath : String = ""
 					for innerProperty in property_value.get_property_list():
 						if innerProperty.has("hint_string") and innerProperty["hint_string"].contains(".gd"):
@@ -79,13 +77,6 @@ static func json_to_class(castClass : GDScript, json: Dictionary) -> Object:
 							_class.get(property.name).append(obj)
 				else:
 					_class.set(property.name, json[key])
-				
-			if key == property.hint_string and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
-				if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
-					_class.set(property.name, json_to_class(json[key], _class.get(key)))
-				else:
-					_class.set(property.name, json[key])
-				
 	return _class
 
 static func getGDScript(hint_class : String) -> GDScript:
@@ -144,10 +135,7 @@ static func class_to_json(_class: Object) -> Dictionary:
 		if property_name == "script": continue
 		var property_value = _class.get(property_name)
 		if not property_name.is_empty() and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
-			
-			if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
-				dictionary[property.name] = class_to_json(property_value)
-			elif property_value is Array:
+			if property_value is Array:
 				# Handle arrays by recursively converting elements if necessary
 				dictionary[property_name] = convert_array_to_json(property_value)
 			elif property_value is Dictionary:
@@ -156,12 +144,9 @@ static func class_to_json(_class: Object) -> Dictionary:
 				dictionary[property.name] = class_to_json(property_value)
 			else:
 				dictionary[property.name] = property_value
-		elif not property["hint_string"].is_empty() and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
-			if (property["class_name"] in ["Reference", "Object"] and property["type"] == TYPE_OBJECT):
-				dictionary[property.hint_string] = class_to_json(property_value)
-			else:
-				dictionary[property.hint_string] = property_value
 	return dictionary
+
+
 # Helper function to recursively convert arrays
 static func convert_array_to_json(array: Array) -> Array:
 	var json_array: Array = []
