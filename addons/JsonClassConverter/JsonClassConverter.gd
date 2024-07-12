@@ -64,10 +64,11 @@ static func json_to_class(castClass : GDScript, json: Dictionary) -> Object:
 			if property.name == key and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
 				if property_value is not Array and property.type == TYPE_OBJECT:
 					var innerClassPath : String = ""
-					for innerProperty in property_value.get_property_list():
-						if innerProperty.has("hint_string") and innerProperty["hint_string"].contains(".gd"):
-							innerClassPath = innerProperty["hint_string"]
-					_class.set(property.name, json_to_class(load(innerClassPath),json[key])) ## loading class
+					if property_value:
+						for innerProperty in property_value.get_property_list():
+							if innerProperty.has("hint_string") and innerProperty["hint_string"].contains(".gd"):
+								innerClassPath = innerProperty["hint_string"]
+						_class.set(property.name, json_to_class(load(innerClassPath),json[key])) ## loading class
 				elif property_value is Array:
 					if property.has("hint_string"):
 						var classHint = property["hint_string"]
@@ -140,7 +141,7 @@ static func class_to_json(_class: Object) -> Dictionary:
 				dictionary[property_name] = convert_array_to_json(property_value)
 			elif property_value is Dictionary:
 				dictionary[property_name] = convert_dictionary_to_json(property_value)
-			elif property["type"] == TYPE_OBJECT and property_value.get_property_list():
+			elif property["type"] == TYPE_OBJECT and property_value != null and property_value.get_property_list():
 				dictionary[property.name] = class_to_json(property_value)
 			else:
 				dictionary[property.name] = property_value
@@ -159,7 +160,6 @@ static func convert_array_to_json(array: Array) -> Array:
 			json_array.append(convert_dictionary_to_json(element))
 		else:
 			json_array.append(element) 
-		#json_array.append() ## Adding className
 	return json_array
 
 
