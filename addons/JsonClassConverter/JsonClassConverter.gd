@@ -64,6 +64,8 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 							if inner_property.has("hint_string") and inner_property["hint_string"].contains(".gd"):
 								inner_class_path = inner_property["hint_string"]
 						_class.set(property.name, json_to_class(load(inner_class_path), json[key])) ## loading class
+					elif json[key]:
+						_class.set(property.name, json_to_class(get_gdscript(property. class_name ), json[key]))
 				elif property_value is Array:
 					if property.has("hint_string"):
 						var class_hint: String = property["hint_string"]
@@ -77,7 +79,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 
 static func get_gdscript(hint_class: String) -> GDScript:
 	for className: Dictionary in ProjectSettings.get_global_class_list():
-		if className.class == hint_class:
+		if className. class == hint_class:
 			return load(className.path)
 	return null
 	
