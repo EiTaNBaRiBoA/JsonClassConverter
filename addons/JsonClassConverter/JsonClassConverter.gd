@@ -47,7 +47,7 @@ static func json_string_to_class(castClass: GDScript, json_string: String) -> Ob
 
 ## Convert a JSON dictionary into a class
 static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
-	var _class: Object = castClass.new()
+	var _class: Object = castClass.new() as Object
 	var properties: Array = _class.get_property_list()
 
 	for key: String in json.keys(): # Typed loop variable 'key'
@@ -58,7 +58,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 			var value: Variant = json[key]
 			if property.name == key and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
 				if property_value is not Array and property.type == TYPE_OBJECT:
-					var inner_class_path := ""
+					var inner_class_path: String = ""
 					if property_value:
 						for inner_property: Dictionary in property_value.get_property_list(): # Typed loop variable 'inner_property'
 							if inner_property.has("hint_string") and inner_property["hint_string"].contains(".gd"):
@@ -69,14 +69,14 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 						var class_hint: String = property["hint_string"]
 						if class_hint.contains(":"):
 							class_hint = class_hint.split(":")[1] # Assuming format "24/34:Class"
-						for obj: Object in convert_json_to_array(value, get_gdscript(class_hint)):
-							_class.get(property.name).append(obj)
+						for obj_array: Variant in convert_json_to_array(value, get_gdscript(class_hint)):
+							_class.get(property.name).append(obj_array)
 				else:
 					_class.set(property.name, json[key])
 	return _class
 
 static func get_gdscript(hint_class: String) -> GDScript:
-	for className in ProjectSettings.get_global_class_list():
+	for className: Dictionary in ProjectSettings.get_global_class_list():
 		if className.class == hint_class:
 			return load(className.path)
 	return null
@@ -109,7 +109,7 @@ static func store_json_file(file_name: String, dir: String, data: Dictionary, se
 	if not file:
 		printerr("Error writing to a file")
 		return false
-	var json_string := JSON.stringify(data, "\t")
+	var json_string: String = JSON.stringify(data, "\t")
 	file.store_string(json_string)
 	file.close()
 	return true
@@ -156,7 +156,7 @@ static func convert_array_to_json(array: Array) -> Array:
 # Helper function to recursively convert dictionaries
 static func convert_dictionary_to_json(dictionary: Dictionary) -> Dictionary:
 	var json_dictionary: Dictionary = {}
-	for key: String in dictionary.keys(): # key's type is inferred to be Variant
+	for key: Variant in dictionary.keys(): # key's type is inferred to be Variant
 		var value: Variant = dictionary[key]
 		if value is Object:
 			json_dictionary[key] = class_to_json(value)
