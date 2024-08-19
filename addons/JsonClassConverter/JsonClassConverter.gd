@@ -8,31 +8,36 @@ static func _check_cast_class(castClass: GDScript) -> bool:
 	return true
 
 ## Checks if dir exists
-static func check_dir(path: String) -> void:
-	if !DirAccess.dir_exists_absolute(path):
-		DirAccess.make_dir_absolute(path)
+static func check_dir(file_path: String) -> void:
+	if !DirAccess.dir_exists_absolute(file_path.get_base_dir()):
+		DirAccess.make_dir_absolute(file_path.get_base_dir())
 
 #region Json to Class
 
-## Load json to class from a file
-static func load_json_file(castClass: GDScript, file_name: String, dir: String, security_key: String = "") -> Object:
-	if not _check_cast_class(castClass):
-		printerr("the passing cast is null")
-		return null
-	check_dir(dir)
+static func json_file_to_dict(file_path: String, security_key: String = "") -> Dictionary:
 	var file: FileAccess
-	if FileAccess.file_exists(dir + file_name):
+	if FileAccess.file_exists(file_path):
 		if security_key.length() == 0:
-			file = FileAccess.open(dir + file_name, FileAccess.READ)
+			file = FileAccess.open(file_path, FileAccess.READ)
 		else:
-			file = FileAccess.open_encrypted_with_pass(dir + file_name, FileAccess.READ, security_key)
+			file = FileAccess.open_encrypted_with_pass(file_path, FileAccess.READ, security_key)
 		if not file:
-			return castClass.new()
+			return {}
 		var parsed_results: Variant = JSON.parse_string(file.get_as_text())
 		file.close()
 		if parsed_results is Dictionary or parsed_results is Array:
-			return json_to_class(castClass, parsed_results)
-	return castClass.new()
+			return parsed_results
+	return {}
+
+## Load json to class from a file
+static func json_file_to_class(castClass: GDScript, file_path: String, security_key: String = "") -> Object:
+	if not _check_cast_class(castClass):
+		printerr("the passing cast is null")
+		return null
+	var parsed_results = json_file_to_dict(file_path, security_key)
+	if parsed_results == null:
+		return castClass.new()
+	return json_to_class(castClass, parsed_results)
 
 ## Convert a JSON string to class
 static func json_string_to_class(castClass: GDScript, json_string: String) -> Object:
@@ -51,21 +56,23 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 	var properties: Array = _class.get_property_list()
 
 	for key: String in json.keys(): # Typed loop variable 'key'
+		var value: Variant = json[key]
+		if type_string(typeof(value)) == "String" and value.begins_with("Vector"):
+			value = str_to_var(value)
 		for property: Dictionary in properties: # Typed loop variable 'property'
 			if property.name == "script":
 				continue
 			var property_value: Variant = _class.get(property.name)
-			var value: Variant = json[key]
 			if property.name == key and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
-				if property_value is not Array and property.type == TYPE_OBJECT:
+				if not property_value is Array and property.type == TYPE_OBJECT:
 					var inner_class_path: String = ""
 					if property_value:
 						for inner_property: Dictionary in property_value.get_property_list(): # Typed loop variable 'inner_property'
 							if inner_property.has("hint_string") and inner_property["hint_string"].contains(".gd"):
 								inner_class_path = inner_property["hint_string"]
-						_class.set(property.name, json_to_class(load(inner_class_path), json[key])) ## loading class
-					elif json[key]:
-						_class.set(property.name, json_to_class(get_gdscript(property. class_name ), json[key]))
+						_class.set(property.name, json_to_class(load(inner_class_path), value)) ## loading class
+					elif value:
+						_class.set(property.name, json_to_class(get_gdscript(property. class_name ), value))
 				elif property_value is Array:
 					if property.has("hint_string"):
 						var class_hint: String = property["hint_string"]
@@ -74,7 +81,10 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 						for obj_array: Variant in convert_json_to_array(value, get_gdscript(class_hint)):
 							_class.get(property.name).append(obj_array)
 				else:
-					_class.set(property.name, json[key])
+					# Edge case where the property type is color but , it doesn't have Vector in it's name
+					if property.type == TYPE_COLOR:
+						value = str_to_var(value)
+					_class.set(property.name, value)
 	return _class
 
 static func get_gdscript(hint_class: String) -> GDScript:
@@ -101,13 +111,13 @@ static func convert_json_to_array(json_array: Array, cast_class: GDScript = null
 
 #region Class to Json
 ##Stores json to a file, returns if success
-static func store_json_file(file_name: String, dir: String, data: Dictionary, security_key: String = "") -> bool:
-	check_dir(dir)
+static func store_json_file(file_path: String, data: Dictionary, security_key: String = "") -> bool:
+	check_dir(file_path)
 	var file: FileAccess
 	if security_key.length() == 0:
-		file = FileAccess.open(dir + file_name, FileAccess.WRITE)
+		file = FileAccess.open(file_path, FileAccess.WRITE)
 	else:
-		file = FileAccess.open_encrypted_with_pass(dir + file_name, FileAccess.WRITE, security_key)
+		file = FileAccess.open_encrypted_with_pass(file_path, FileAccess.WRITE, security_key)
 	if not file:
 		printerr("Error writing to a file")
 		return false
@@ -130,13 +140,15 @@ static func class_to_json(_class: Object) -> Dictionary:
 		if property_name == "script":
 			continue
 		var property_value: Variant = _class.get(property_name)
-		if not property_name.is_empty() and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
+		if not property_name.is_empty() and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE and property.usage & PROPERTY_USAGE_STORAGE > 0:
 			if property_value is Array:
 				dictionary[property_name] = convert_array_to_json(property_value)
 			elif property_value is Dictionary:
 				dictionary[property_name] = convert_dictionary_to_json(property_value)
 			elif property["type"] == TYPE_OBJECT and property_value != null and property_value.get_property_list():
 				dictionary[property.name] = class_to_json(property_value)
+			elif type_string(typeof(property_value)).begins_with("Vector"):
+				dictionary[property_name] = var_to_str(property_value)
 			else:
 				dictionary[property.name] = property_value
 	return dictionary
