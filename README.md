@@ -12,6 +12,7 @@ This GDScript provides a set of utility functions for converting Godot classes t
 	* Loads JSON data from files (with optional decryption).
 	* Converts JSON strings and dictionaries into class instances.
 	* Handles nested object structures. 
+* **Automatic Type Recognition:**  Intelligently handles various data types, including Vectors, Colors, and custom classes.
 
 ## Installation
 
@@ -44,7 +45,7 @@ var json_string: String = JsonClassConverter.class_to_json_string(player_data)
 **c) Save JSON Data to a File:**
 
 ```gdscript
-var file_success: bool = JsonClassConverter.store_json_file("player_data.json", "user://saves/", json_data, "my_secret_key")
+var file_success: bool = JsonClassConverter.store_json_file("user://saves/player_data.json", json_data, "my_secret_key")  # Optional encryption key
 
 # Check if saving was successful:
 if file_success:
@@ -58,7 +59,7 @@ else:
 **a) Load JSON Data from a File:**
 
 ```gdscript
-var loaded_data: PlayerData = JsonClassConverter.load_json_file(PlayerData, "player_data.json", "user://saves/", "my_secret_key")
+var loaded_data: PlayerData = JsonClassConverter.json_file_to_class(PlayerData, "user://saves/player_data.json", "my_secret_key") # Optional decryption key
 
 if loaded_data:
 	# ... (Access properties of the loaded_data)
@@ -82,9 +83,10 @@ var player_data: PlayerData = JsonClassConverter.json_to_class(PlayerData, json_
 
 ## Important Notes
 
-* **Exported Properties:** Only exported properties (those declared with `@export`) will be serialized and deserialized.
-* **Class Names:**  When loading from JSON, make sure the `castClass` argument in the `load_json_file()`, `json_string_to_class()`, and `json_to_class()` functions matches the actual class name you want to deserialize into. 
+* **Exported Properties:** Only exported properties (those declared with `@export`) or properties with the `[PROPERTY_USAGE_STORAGE]` meta will be serialized and deserialized.
+* **Class Names:**  When loading from JSON, make sure the `castClass` argument (e.g., `PlayerData` in the examples) matches the actual class name you want to deserialize into. 
 * **Error Handling:**  Consider adding more robust error handling to the functions (e.g., checking if files exist, handling JSON parsing errors).
+* **Vector and Color Representation:** Vectors and Colors are stored as strings (e.g., `"Vector2(1, 2)"`) to ensure compatibility.
 
 ## Example
 
@@ -105,9 +107,9 @@ player.score = 100
 player.inventory = ["Sword", "Potion"]
 
 # Save to file
-JsonClassConverter.store_json_file("player.sav", "user://", JsonClassConverter.class_to_json(player))
+JsonClassConverter.store_json_file("user://player.sav", JsonClassConverter.class_to_json(player))
 
 # Load from file
-var new_player : PlayerData = JsonClassConverter.load_json_file(PlayerData, "player.sav", "user://")
+var new_player : PlayerData = JsonClassConverter.json_file_to_class(PlayerData, "user://player.sav")
 
 print(new_player.name) # Prints: Bob
