@@ -88,7 +88,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 				else:
 					# Edge case where the property type is color but , it doesn't have Vector in it's name
 					if property.type == TYPE_COLOR:
-						value = str_to_var(value)
+						value = Color(value)
 					_class.set(property.name, value)
 	return _class
 
@@ -154,6 +154,8 @@ static func class_to_json(_class: Object) -> Dictionary:
 				dictionary[property.name] = class_to_json(property_value)
 			elif type_string(typeof(property_value)).begins_with("Vector"):
 				dictionary[property_name] = var_to_str(property_value)
+			elif property["type"] == TYPE_COLOR:
+				dictionary[property_name] = property_value.to_html()
 			else:
 				dictionary[property.name] = property_value
 	return dictionary
