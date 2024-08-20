@@ -78,8 +78,13 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 						var class_hint: String = property["hint_string"]
 						if class_hint.contains(":"):
 							class_hint = class_hint.split(":")[1] # Assuming format "24/34:Class"
-						for obj_array: Variant in convert_json_to_array(value, get_gdscript(class_hint)):
-							_class.get(property.name).append(obj_array)
+						
+						var arrayTemp : Array =  convert_json_to_array(value, get_gdscript(class_hint))
+						if type_string(property_value.get_typed_builtin()).begins_with("Vector"):
+							for obj_array: Variant in arrayTemp:
+								_class.get(property.name).append(str_to_var(obj_array))
+						else:
+							_class.get(property.name).assign(arrayTemp)
 				else:
 					# Edge case where the property type is color but , it doesn't have Vector in it's name
 					if property.type == TYPE_COLOR:
@@ -103,6 +108,8 @@ static func convert_json_to_array(json_array: Array, cast_class: GDScript = null
 			godot_array.append(json_to_class(cast_class, element))
 		elif typeof(element) == TYPE_ARRAY:
 			godot_array.append(convert_json_to_array(element))
+		#elif typeof(element) == TYPE_STRING and element.begins_with("("):  # Check for Vector3 string
+			#godot_array.append(JSON.parse_string(JSON.stringify(element))) # Convert string to Vector3
 		else:
 			godot_array.append(element)
 	return godot_array
@@ -163,6 +170,8 @@ static func convert_array_to_json(array: Array) -> Array:
 			json_array.append(convert_array_to_json(element))
 		elif element is Dictionary:
 			json_array.append(convert_dictionary_to_json(element))
+		elif type_string(typeof(element)).begins_with("Vector"):
+			json_array.append(var_to_str(element))
 		else:
 			json_array.append(element)
 	return json_array
