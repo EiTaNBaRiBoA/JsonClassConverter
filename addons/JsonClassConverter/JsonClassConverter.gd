@@ -77,7 +77,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 							script_type = get_gdscript(value.ScriptName)
 						else:
 							script_type = get_gdscript(property.class_name)
-						if not script_type:
+						if not script_type or value is String and FileAccess.file_exists(value):
 							_class.set(property.name, load(value))
 						else:
 							_class.set(property.name, json_to_class(script_type, value))
@@ -159,7 +159,7 @@ static func class_to_json(_class: Object) -> Dictionary:
 			elif property_value is Dictionary:
 				dictionary[property_name] = convert_dictionary_to_json(property_value)
 			elif property["type"] == TYPE_OBJECT and property_value != null and property_value.get_property_list():
-				if property_value is Resource and property_value.resource_path.length() > 0:
+				if property_value is Resource and !property_value.resource_path.is_empty():
 					dictionary[property.name] = property_value.resource_path
 				else:
 					dictionary[property.name] = class_to_json(property_value)
