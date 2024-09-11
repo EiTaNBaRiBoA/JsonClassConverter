@@ -72,11 +72,15 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 								inner_class_path = inner_property["hint_string"]
 						_class.set(property.name, json_to_class(load(inner_class_path), value)) ## loading class
 					elif value:
-						var script_type = get_gdscript(property. class_name )
-						if not script_type:
-							_class.set(property.name,load(value))
+						var script_type: GDScript = null
+						if value is Dictionary and value.has("ScriptName"):
+							script_type = get_gdscript(value.ScriptName)
 						else:
-							_class.set(property.name, json_to_class(get_gdscript(property. class_name ), value))
+							script_type = get_gdscript(property.class_name)
+						if not script_type:
+							_class.set(property.name, load(value))
+						else:
+							_class.set(property.name, json_to_class(script_type, value))
 				elif property_value is Array:
 					if property.has("hint_string"):
 						var class_hint: String = property["hint_string"]
@@ -155,7 +159,7 @@ static func class_to_json(_class: Object) -> Dictionary:
 			elif property_value is Dictionary:
 				dictionary[property_name] = convert_dictionary_to_json(property_value)
 			elif property["type"] == TYPE_OBJECT and property_value != null and property_value.get_property_list():
-				if property_value is Resource:
+				if property_value is Resource and property_value.resource_path.length() > 0:
 					dictionary[property.name] = property_value.resource_path
 				else:
 					dictionary[property.name] = class_to_json(property_value)
