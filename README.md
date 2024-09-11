@@ -78,7 +78,7 @@ var player_data: PlayerData = JsonClassConverter.json_string_to_class(PlayerData
 
 ```gdscript
 var json_dict = { "name": "Bob", "score": 2000 }
-var player_data: PlayerData = JsonClassConverter.json_to_class(PlayerData, json_dict)
+var player_data: PlayerData = JsonClassConverter.json_file_to_class(PlayerData, json_dict)
 ```
 
 ## Important Notes
