@@ -78,7 +78,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 						else:
 							script_type = get_gdscript(property. class_name )
 						if value is String and value.is_absolute_path():
-							_class.set(property.name, load(value))
+							_class.set(property.name, ResourceLoader.load(get_main_tres_path(value)))
 						else:
 							_class.set(property.name, json_to_class(script_type, value))
 				elif property_value is Array:
@@ -160,7 +160,11 @@ static func class_to_json(_class: Object) -> Dictionary:
 				dictionary[property_name] = convert_dictionary_to_json(property_value)
 			elif property["type"] == TYPE_OBJECT and property_value != null and property_value.get_property_list():
 				if property_value is Resource and ResourceLoader.exists(property_value.resource_path):
-					dictionary[property.name] = property_value.resource_path
+					var main_src: String = get_main_tres_path(property_value.resource_path)
+					if main_src.get_extension() != "tres":
+						dictionary[property.name] = property_value.resource_path
+					else:
+						dictionary[property.name] = class_to_json(property_value)
 				else:
 					dictionary[property.name] = class_to_json(property_value)
 			elif type_string(typeof(property_value)).begins_with("Vector"):
@@ -170,6 +174,14 @@ static func class_to_json(_class: Object) -> Dictionary:
 			else:
 				dictionary[property.name] = property_value
 	return dictionary
+
+## returns main path of the resource
+static func get_main_tres_path(path: String) -> String:
+	var path_parts: PackedStringArray = path.split("::", true, 1)
+	if path_parts.size() > 0:
+		return path_parts[0]
+	else:
+		return path
 
 # Helper function to recursively convert arrays
 static func convert_array_to_json(array: Array) -> Array:
