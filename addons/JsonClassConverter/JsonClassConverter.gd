@@ -164,7 +164,12 @@ static func class_to_json(_class: Object) -> Dictionary:
 					if main_src.get_extension() != "tres":
 						dictionary[property.name] = property_value.resource_path
 					else:
-						dictionary[property.name] = class_to_json(property_value)
+						# Creating a tempfile to avoid overriding the main resource
+						var tempfile = main_src.get_basename() + "temp" + ".tres"
+						ResourceSaver.save(property_value, tempfile)
+						# Creating a temp path for taking the node path
+						tempfile += "::" + get_node_tres_path(property_value.resource_path)
+						dictionary[property.name] = tempfile
 				else:
 					dictionary[property.name] = class_to_json(property_value)
 			elif type_string(typeof(property_value)).begins_with("Vector"):
@@ -182,6 +187,15 @@ static func get_main_tres_path(path: String) -> String:
 		return path_parts[0]
 	else:
 		return path
+
+## returns node path of the resource
+static func get_node_tres_path(path: String) -> String:
+	var path_parts: PackedStringArray = path.split("::", true, 1)
+	if path_parts.size() > 1:
+		return path_parts[1]
+	else:
+		return ""
+
 
 # Helper function to recursively convert arrays
 static func convert_array_to_json(array: Array) -> Array:
