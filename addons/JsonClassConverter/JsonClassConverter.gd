@@ -77,7 +77,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 							script_type = get_gdscript(value.ScriptName)
 						else:
 							script_type = get_gdscript(property. class_name )
-						if not script_type or value is String and ResourceLoader.exists(value):
+						if value is String and value.is_absolute_path():
 							_class.set(property.name, load(value))
 						else:
 							_class.set(property.name, json_to_class(script_type, value))
