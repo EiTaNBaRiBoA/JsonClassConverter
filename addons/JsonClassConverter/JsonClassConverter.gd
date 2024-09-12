@@ -1,5 +1,7 @@
 class_name JsonClassConverter
 
+static var save_temp_resources_tres: bool = false
+
 ## Checks cast class
 static func _check_cast_class(castClass: GDScript) -> bool:
 	if typeof(castClass) == Variant.Type.TYPE_NIL:
@@ -139,13 +141,14 @@ static func store_json_file(file_path: String, data: Dictionary, security_key: S
 	file.close()
 	return true
 
-## Convert a class into JSON string
-static func class_to_json_string(_class: Object) -> String:
-	return JSON.stringify(class_to_json(_class))
+## Convert a class into JSON string , save_temp_res for saving in user:// a temp resources tres as gd
+static func class_to_json_string(_class: Object, save_temp_res: bool = false) -> String:
+	return JSON.stringify(class_to_json(_class, save_temp_res))
 
-## Convert class to JSON dictionary
-static func class_to_json(_class: Object) -> Dictionary:
+## Convert class to JSON dictionary , save_temp_res for saving in user:// a temp resources tres else saved as gd
+static func class_to_json(_class: Object, save_temp_res: bool = false) -> Dictionary:
 	var dictionary: Dictionary = {}
+	save_temp_resources_tres = save_temp_res
 	dictionary["ScriptName"] = _class.get_script().get_global_name()
 	var properties: Array = _class.get_property_list()
 	for property: Dictionary in properties: # Typed loop variable 'property'
@@ -163,15 +166,22 @@ static func class_to_json(_class: Object) -> Dictionary:
 					var main_src: String = get_main_tres_path(property_value.resource_path)
 					if main_src.get_extension() != "tres":
 						dictionary[property.name] = property_value.resource_path
-					else:
+					elif save_temp_resources_tres:
 						# Creating a tempfile to avoid overriding the main resource
-						var tempfile = main_src.get_basename() + "temp" + ".tres"
-						ResourceSaver.save(property_value, tempfile)
+						var tempfile = "user://temp_resource/"
 						# Creating a temp path for taking the node path
-						tempfile += "::" + get_node_tres_path(property_value.resource_path)
+						var nodePath: String = get_node_tres_path(property_value.resource_path)
+						if not nodePath.is_empty():
+							tempfile += nodePath
+						else:
+							tempfile += get_main_tres_path(property_value.resource_path)
+						tempfile += ".tres"
 						dictionary[property.name] = tempfile
+						ResourceSaver.save(property_value, tempfile)
+					else:
+						dictionary[property.name] = class_to_json(property_value, save_temp_resources_tres)
 				else:
-					dictionary[property.name] = class_to_json(property_value)
+					dictionary[property.name] = class_to_json(property_value, save_temp_resources_tres)
 			elif type_string(typeof(property_value)).begins_with("Vector"):
 				dictionary[property_name] = var_to_str(property_value)
 			elif property["type"] == TYPE_COLOR:
@@ -202,7 +212,7 @@ static func convert_array_to_json(array: Array) -> Array:
 	var json_array: Array = []
 	for element: Variant in array: # element's type is inferred to be Variant
 		if element is Object:
-			json_array.append(class_to_json(element))
+			json_array.append(class_to_json(element, save_temp_resources_tres))
 		elif element is Array:
 			json_array.append(convert_array_to_json(element))
 		elif element is Dictionary:
@@ -219,7 +229,7 @@ static func convert_dictionary_to_json(dictionary: Dictionary) -> Dictionary:
 	for key: Variant in dictionary.keys(): # key's type is inferred to be Variant
 		var value: Variant = dictionary[key]
 		if value is Object:
-			json_dictionary[key] = class_to_json(value)
+			json_dictionary[key] = class_to_json(value, save_temp_resources_tres)
 		elif value is Array:
 			json_dictionary[key] = convert_array_to_json(value)
 		elif value is Dictionary:
