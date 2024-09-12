@@ -216,6 +216,7 @@ static func class_to_json(_class: Object, save_temp_res: bool = false) -> Dictio
 					elif save_temp_resources_tres:
 						# Save the resource as a separate .tres file
 						var tempfile = "user://temp_resource/"
+						check_dir(tempfile)
 						var nodePath: String = get_node_tres_path(property_value.resource_path)
 						if not nodePath.is_empty():
 							tempfile += nodePath
