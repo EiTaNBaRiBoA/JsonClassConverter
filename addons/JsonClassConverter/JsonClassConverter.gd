@@ -149,7 +149,7 @@ static func convert_json_to_array(json_array: Array, cast_class: GDScript = null
 	for element: Variant in json_array:
 		if typeof(element) == TYPE_DICTIONARY:
 			# If json element has a ScriptName, get the script (for inheritence)
-			if element["ScriptName"]:
+			if "ScriptName" in element:
 				cast_class = get_gdscript(element["ScriptName"])
 			godot_array.append(json_to_class(cast_class, element))
 		elif typeof(element) == TYPE_ARRAY:
