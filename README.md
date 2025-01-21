@@ -5,20 +5,20 @@ This GDScript provides a powerful set of utility functions for converting Godot 
 ## Features
 
 * **Serialization (Class to JSON):**
-    * Converts Godot class instances into JSON-compatible dictionaries.
-    * Handles nested objects and arrays recursively, preserving complex data structures.
-    * Supports saving JSON data to files with optional encryption for enhanced security.
-    * Option to save nested resources as separate `.tres` files or directly embed their data.
+	* Converts Godot class instances into JSON-compatible dictionaries.
+	* Handles nested objects and arrays recursively, preserving complex data structures.
+	* Supports saving JSON data to files with optional encryption for enhanced security.
+	* Option to save nested resources as separate `.tres` files or directly embed their data.
 * **Deserialization (JSON to Class):**
-    * Loads JSON data from files with optional decryption for secure data retrieval.
-    * Converts JSON strings and dictionaries back into Godot class instances.
-    * Reconstructs nested object hierarchies, including custom classes and resource references.
+	* Loads JSON data from files with optional decryption for secure data retrieval.
+	* Converts JSON strings and dictionaries back into Godot class instances.
+	* Reconstructs nested object hierarchies, including custom classes and resource references.
 * **Automatic Type Recognition:** Intelligently manages various data types, including:
-    * Vectors (Vector2, Vector3, etc.)
-    * Colors
-    * Arrays
-    * Dictionaries
-    * Custom classes (using `@export`) 
+	* Vectors (Vector2, Vector3, etc.)
+	* Colors
+	* Arrays
+	* Dictionaries
+	* Custom classes (using `@export`) 
 
 ## Installation
 
@@ -69,9 +69,9 @@ else:
 var loaded_data: PlayerData = JsonClassConverter.json_file_to_class(PlayerData, "user://saves/player_data.json", "your_secret_key") 
 
 if loaded_data:
-    # ... Access properties of loaded_data ...
+	# ... Access properties of loaded_data ...
 else:
-    print("Error loading player data.")
+	print("Error loading player data.")
 ```
 
 **b) Convert a JSON String to a Class Instance:**

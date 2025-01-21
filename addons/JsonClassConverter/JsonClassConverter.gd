@@ -131,7 +131,18 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 					# Special handling for Color type (stored as a hex string)
 					if property.type == TYPE_COLOR:
 						value = Color(value)
-					_class.set(property.name, value)
+					if property.type == TYPE_INT and property.hint == PROPERTY_HINT_ENUM:
+						var enum_strs: Array = property.hint_string.split(",")
+						var enum_value: int = 0
+						for enum_str: String in enum_strs:
+							if enum_str.contains(":"):
+								var enum_keys: Array = enum_str.split(":")
+								for i: int in enum_keys.size():
+									if enum_keys[i] == value:
+										enum_value = int(enum_keys[i + 1])
+						_class.set(property.name, enum_value)
+					else:
+						_class.set(property.name, value)
 
 	# Return the fully deserialized class instance
 	return _class
@@ -238,7 +249,14 @@ static func class_to_json(_class: Object, save_temp_res: bool = false) -> Dictio
 				dictionary[property_name] = property_value.to_html()
 			else:
 				# Store other basic types directly
-				dictionary[property.name] = property_value
+				if property.type == TYPE_INT and property.hint == PROPERTY_HINT_ENUM:
+					var enum_value: String = property.hint_string.split(",")[property_value]
+					if enum_value.contains(":"):
+						dictionary[property.name] = enum_value.split(":")[0]
+					else:
+						dictionary[property.name] = enum_value
+				else:
+					dictionary[property.name] = property_value
 	return dictionary
 
 ## Extracts the main path from a resource path (removes node path if present).
