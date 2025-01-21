@@ -159,7 +159,7 @@ static func convert_json_to_array(json_array: Array, cast_class: GDScript = null
 	var godot_array: Array = []
 	for element: Variant in json_array:
 		if typeof(element) == TYPE_DICTIONARY:
-			# If json element has a script_inheritance, get the script (for inheritance)
+			# If json element has a script_inheritance, get the script (for inheritance or for untyped array/dictionary)
 			if "script_inheritance" in element:
 				cast_class = get_gdscript(element["script_inheritance"])
 			godot_array.append(json_to_class(cast_class, element))
@@ -282,7 +282,7 @@ static func convert_array_to_json(array: Array) -> Array:
 	var json_array: Array = []
 	for element: Variant in array:
 		if element is Object:
-			json_array.append(class_to_json(element, save_temp_resources_tres))
+			json_array.append(class_to_json(element, save_temp_resources_tres,!array.is_typed()))
 		elif element is Array:
 			json_array.append(convert_array_to_json(element))
 		elif element is Dictionary:
