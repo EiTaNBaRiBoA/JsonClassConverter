@@ -96,8 +96,8 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 					elif value:
 						var script_type: GDScript = null
 						# Determine the script type for the nested object
-						if value is Dictionary and value.has("ScriptName"):
-							script_type = get_gdscript(value.ScriptName)
+						if value is Dictionary and value.has("script_name"):
+							script_type = get_gdscript(value["script_name"])
 						else:
 							script_type = get_gdscript(property. class_name )
 
@@ -159,9 +159,9 @@ static func convert_json_to_array(json_array: Array, cast_class: GDScript = null
 	var godot_array: Array = []
 	for element: Variant in json_array:
 		if typeof(element) == TYPE_DICTIONARY:
-			# If json element has a ScriptName, get the script (for inheritence)
-			if "ScriptName" in element:
-				cast_class = get_gdscript(element["ScriptName"])
+			# If json element has a script_name, get the script (for inheritence)
+			if "script_name" in element:
+				cast_class = get_gdscript(element["script_name"])
 			godot_array.append(json_to_class(cast_class, element))
 		elif typeof(element) == TYPE_ARRAY:
 			godot_array.append(convert_json_to_array(element))
@@ -194,11 +194,12 @@ static func class_to_json_string(_class: Object, save_temp_res: bool = false) ->
 
 ## Converts a Godot class instance into a JSON dictionary.
 ## This is the core serialization function.
-static func class_to_json(_class: Object, save_temp_res: bool = false) -> Dictionary:
+static func class_to_json(_class: Object, save_temp_res: bool = false, inheritence: bool = false) -> Dictionary:
 	var dictionary: Dictionary = {}
 	save_temp_resources_tres = save_temp_res
-	# Store the script name for reference during deserialization
-	dictionary["ScriptName"] = _class.get_script().get_global_name()
+	# Store the script name for reference during deserialization if inheritence exists
+	if inheritence:
+		dictionary["script_name"] = _class.get_script().get_global_name()
 	var properties: Array = _class.get_property_list()
 
 	# Iterate through each property of the class
@@ -240,7 +241,7 @@ static func class_to_json(_class: Object, save_temp_res: bool = false) -> Dictio
 						# Recursively serialize the nested resource
 						dictionary[property.name] = class_to_json(property_value, save_temp_resources_tres)
 				else:
-					dictionary[property.name] = class_to_json(property_value, save_temp_resources_tres)
+					dictionary[property.name] = class_to_json(property_value, save_temp_resources_tres, property. class_name != property_value.get_script().get_global_name())
 			# Special handling for Vector types (store as strings)
 			elif type_string(typeof(property_value)).begins_with("Vector"):
 				dictionary[property_name] = var_to_str(property_value)
