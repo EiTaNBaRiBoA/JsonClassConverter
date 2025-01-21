@@ -96,8 +96,8 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 					elif value:
 						var script_type: GDScript = null
 						# Determine the script type for the nested object
-						if value is Dictionary and value.has("script_name"):
-							script_type = get_gdscript(value["script_name"])
+						if value is Dictionary and value.has("script_inheritence"):
+							script_type = get_gdscript(value["script_inheritence"])
 						else:
 							script_type = get_gdscript(property. class_name )
 
@@ -159,9 +159,9 @@ static func convert_json_to_array(json_array: Array, cast_class: GDScript = null
 	var godot_array: Array = []
 	for element: Variant in json_array:
 		if typeof(element) == TYPE_DICTIONARY:
-			# If json element has a script_name, get the script (for inheritence)
-			if "script_name" in element:
-				cast_class = get_gdscript(element["script_name"])
+			# If json element has a script_inheritence, get the script (for inheritence)
+			if "script_inheritence" in element:
+				cast_class = get_gdscript(element["script_inheritence"])
 			godot_array.append(json_to_class(cast_class, element))
 		elif typeof(element) == TYPE_ARRAY:
 			godot_array.append(convert_json_to_array(element))
@@ -199,7 +199,7 @@ static func class_to_json(_class: Object, save_temp_res: bool = false, inheriten
 	save_temp_resources_tres = save_temp_res
 	# Store the script name for reference during deserialization if inheritence exists
 	if inheritence:
-		dictionary["script_name"] = _class.get_script().get_global_name()
+		dictionary["script_inheritence"] = _class.get_script().get_global_name()
 	var properties: Array = _class.get_property_list()
 
 	# Iterate through each property of the class
