@@ -125,8 +125,10 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 								_class.get(property.name).append(str_to_var(obj_array))
 						else:
 							_class.get(property.name).assign(arrayTemp)
-
-				# Case 3: Property is a simple type (not an object or array)
+				# Case 3: Property is a Typed Dictionary
+				elif property_value is Dictionary and property_value.is_typed():
+					convert_json_to_dictionary(property_value, value)
+				# Case 4: Property is a simple type (not an object or array)
 				else:
 					# Special handling for Color type (stored as a hex string)
 					if property.type == TYPE_COLOR:
@@ -168,6 +170,40 @@ static func convert_json_to_array(json_array: Array, cast_class: GDScript = null
 		else:
 			godot_array.append(element)
 	return godot_array
+
+## Helper function to recursively convert JSON dictionaries to Godot arrays.
+static func convert_json_to_dictionary(propert_value: Dictionary, json_dictionary: Dictionary) -> void:
+	for dic_value: Variant in json_dictionary.values():
+		var dic_key: Variant = json_dictionary.find_key(dic_value)
+		var key_class: GDScript = null
+		var value_class: GDScript = null
+		var key_obj: Variant = null
+		var value_obj: Variant = null
+		if typeof(dic_key) == TYPE_DICTIONARY:
+			if "script_inheritance" in dic_key:
+				key_class = get_gdscript(dic_key["script_inheritance"])
+			else:
+				key_class = propert_value.get_typed_key_script()
+			key_obj = json_to_class(key_class, dic_key)
+		elif typeof(dic_key) == TYPE_ARRAY:
+			key_obj = convert_json_to_array(dic_key)
+		else:
+			key_obj = str_to_var(dic_key)
+			if !key_obj:
+				key_obj = dic_key
+		if typeof(dic_value) == TYPE_DICTIONARY:
+			if "script_inheritance" in dic_value:
+				value_class = get_gdscript(dic_value["script_inheritance"])
+			else:
+				value_class = propert_value.get_typed_key_script()
+			value_obj = json_to_class(value_class, dic_value)
+		elif typeof(dic_value) == TYPE_ARRAY:
+			value_obj = convert_json_to_array(dic_value)
+		else:
+			value_obj = str_to_var(dic_value)
+			if !value_obj:
+				value_obj = dic_value
+		propert_value[key_obj] = value_obj
 
 #endregion
 
@@ -282,7 +318,7 @@ static func convert_array_to_json(array: Array) -> Array:
 	var json_array: Array = []
 	for element: Variant in array:
 		if element is Object:
-			json_array.append(class_to_json(element, save_temp_resources_tres,!array.is_typed()))
+			json_array.append(class_to_json(element, save_temp_resources_tres, !array.is_typed()))
 		elif element is Array:
 			json_array.append(convert_array_to_json(element))
 		elif element is Dictionary:
@@ -299,7 +335,7 @@ static func convert_dictionary_to_json(dictionary: Dictionary) -> Dictionary:
 	for key: Variant in dictionary.keys():
 		var value: Variant = dictionary[key]
 		if value is Object:
-			json_dictionary[key] = class_to_json(value, save_temp_resources_tres)
+			json_dictionary[key] = class_to_json(value, save_temp_resources_tres, !dictionary.is_typed())
 		elif value is Array:
 			json_dictionary[key] = convert_array_to_json(value)
 		elif value is Dictionary:
