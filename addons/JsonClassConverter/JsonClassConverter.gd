@@ -140,7 +140,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 							if enum_str.contains(":"):
 								var enum_keys: Array = enum_str.split(":")
 								for i: int in enum_keys.size():
-									if enum_keys[i] == value:
+									if enum_keys[i].to_lower() == value.to_lower():
 										enum_value = int(enum_keys[i + 1])
 						_class.set(property.name, enum_value)
 					else:
