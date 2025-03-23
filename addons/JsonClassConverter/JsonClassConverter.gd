@@ -99,7 +99,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 						if value is Dictionary and value.has("script_inheritance"):
 							script_type = get_gdscript(value["script_inheritance"])
 						else:
-							script_type = get_gdscript(property. class_name )
+							script_type = get_gdscript(property.class_name )
 
 						# If the value is a resource path, load the resource
 						if value is String and value.is_absolute_path():
@@ -152,7 +152,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 ## Helper function to find a GDScript by its class name.
 static func get_gdscript(hint_class: String) -> GDScript:
 	for className: Dictionary in ProjectSettings.get_global_class_list():
-		if className. class == hint_class:
+		if className.class == hint_class:
 			return load(className.path)
 	return null
 	
@@ -277,7 +277,7 @@ static func class_to_json(_class: Object, save_temp_res: bool = false, inheritan
 						# Recursively serialize the nested resource
 						dictionary[property.name] = class_to_json(property_value, save_temp_resources_tres)
 				else:
-					dictionary[property.name] = class_to_json(property_value, save_temp_resources_tres, property. class_name != property_value.get_script().get_global_name())
+					dictionary[property.name] = class_to_json(property_value, save_temp_resources_tres, property.class_name != property_value.get_script().get_global_name())
 			# Special handling for Vector types (store as strings)
 			elif type_string(typeof(property_value)).begins_with("Vector"):
 				dictionary[property_name] = var_to_str(property_value)
@@ -287,11 +287,13 @@ static func class_to_json(_class: Object, save_temp_res: bool = false, inheritan
 			else:
 				# Store other basic types directly
 				if property.type == TYPE_INT and property.hint == PROPERTY_HINT_ENUM:
-					var enum_value: String = property.hint_string.split(",")[property_value]
-					if enum_value.contains(":"):
-						dictionary[property.name] = enum_value.split(":")[0]
-					else:
-						dictionary[property.name] = enum_value
+					var enum_params: String = property.hint_string
+					for enum_value: String in enum_params.split(","):
+						if enum_value.contains(":"):
+							if property_value == str_to_var(enum_value.split(":")[1]):
+								dictionary[property.name] = enum_value.split(":")[0]
+						else:
+							dictionary[property.name] = enum_value
 				else:
 					dictionary[property.name] = property_value
 	return dictionary
