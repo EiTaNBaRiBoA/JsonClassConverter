@@ -195,7 +195,7 @@ static func convert_json_to_dictionary(propert_value: Dictionary, json_dictionar
 			if "script_inheritance" in dic_value:
 				value_class = get_gdscript(dic_value["script_inheritance"])
 			else:
-				value_class = propert_value.get_typed_key_script()
+				value_class = propert_value.get_typed_value_script()
 			value_obj = json_to_class(value_class, dic_value)
 		elif typeof(dic_value) == TYPE_ARRAY:
 			value_obj = convert_json_to_array(dic_value)
