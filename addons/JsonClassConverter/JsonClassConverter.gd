@@ -110,16 +110,18 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 
 				# Case 2: Property is an Array
 				elif property_value is Array:
-					if property_value.is_typed():
+					var arr_script: GDScript = null
+					if property_value.is_typed() and property_value.get_typed_script():
+						arr_script = load(property_value.get_typed_script().get_path())
 						# Recursively convert the JSON array to a Godot array
-						var arrayTemp: Array = convert_json_to_array(value, load(property_value.get_typed_script().get_path()))
+					var arrayTemp: Array = convert_json_to_array(value, arr_script)
 						
 						# Handle Vector arrays (convert string elements back to Vectors)
-						if type_string(property_value.get_typed_builtin()).begins_with("Vector"):
-							for obj_array: Variant in arrayTemp:
-								_class.get(property.name).append(str_to_var(obj_array))
-						else:
-							_class.get(property.name).assign(arrayTemp)
+					if type_string(property_value.get_typed_builtin()).begins_with("Vector"):
+						for obj_array: Variant in arrayTemp:
+							_class.get(property.name).append(str_to_var(type_string(property_value.get_typed_builtin()) + obj_array))
+					else:
+						_class.get(property.name).assign(arrayTemp)
 				# Case 3: Property is a Typed Dictionary
 				elif property_value is Dictionary and property_value.is_typed():
 					convert_json_to_dictionary(property_value, value)
