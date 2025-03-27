@@ -205,6 +205,8 @@ static func convert_json_to_dictionary(propert_value: Dictionary, json_dictionar
 			value_obj = json_to_class(value_script, json_value)
 		elif typeof(json_value) == TYPE_ARRAY:
 			value_obj = convert_json_to_array(json_value)
+		elif typeof(dic_value) == TYPE_BOOL or typeof(dic_value) == TYPE_INT or typeof(dic_value) == TYPE_FLOAT:
+			value_obj = dic_value
 		else:
 			value_obj = str_to_var(json_value)
 			if !value_obj: # if null revert to json key
