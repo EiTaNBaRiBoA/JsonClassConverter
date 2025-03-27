@@ -110,14 +110,9 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 
 				# Case 2: Property is an Array
 				elif property_value is Array:
-					if property.has("hint_string"):
-						var class_hint: String = property["hint_string"]
-						if class_hint.contains(":"):
-							# Extract class name from hint string (e.g., "24/34:ClassName")
-							class_hint = class_hint.split(":")[1]
-						
+					if property_value.is_typed():
 						# Recursively convert the JSON array to a Godot array
-						var arrayTemp: Array = convert_json_to_array(value, get_gdscript(class_hint))
+						var arrayTemp: Array = convert_json_to_array(value, load(property_value.get_typed_script().get_path()))
 						
 						# Handle Vector arrays (convert string elements back to Vectors)
 						if type_string(property_value.get_typed_builtin()).begins_with("Vector"):
@@ -173,37 +168,46 @@ static func convert_json_to_array(json_array: Array, cast_class: GDScript = null
 
 ## Helper function to recursively convert JSON dictionaries to Godot arrays.
 static func convert_json_to_dictionary(propert_value: Dictionary, json_dictionary: Dictionary) -> void:
-	for dic_value: Variant in json_dictionary.values():
-		var dic_key: Variant = json_dictionary.find_key(dic_value)
-		var key_class: GDScript = null
-		var value_class: GDScript = null
+	for json_key: Variant in json_dictionary.keys():
+		var json_value: Variant = json_dictionary.get(json_key)
 		var key_obj: Variant = null
 		var value_obj: Variant = null
-		if typeof(dic_key) == TYPE_DICTIONARY:
-			if "script_inheritance" in dic_key:
-				key_class = get_gdscript(dic_key["script_inheritance"])
+		if propert_value.get_typed_key_script() and typeof(json_key) == TYPE_STRING:
+			var data = JSON.parse_string(json_key)
+			if data:
+				json_key = data
+		if typeof(json_key) == TYPE_DICTIONARY or typeof(json_key) == TYPE_OBJECT:
+			var key_script: GDScript = null
+			if "script_inheritance" in json_key:
+				key_script = get_gdscript(json_key["script_inheritance"])
 			else:
-				key_class = propert_value.get_typed_key_script()
-			key_obj = json_to_class(key_class, dic_key)
-		elif typeof(dic_key) == TYPE_ARRAY:
-			key_obj = convert_json_to_array(dic_key)
+				key_script = load(propert_value.get_typed_key_script().get_path())
+			key_obj = json_to_class(key_script, json_key)
+		elif typeof(json_key) == TYPE_ARRAY:
+			key_obj = convert_json_to_array(json_key)
 		else:
-			key_obj = str_to_var(dic_key)
-			if !key_obj:
-				key_obj = dic_key
-		if typeof(dic_value) == TYPE_DICTIONARY:
-			if "script_inheritance" in dic_value:
-				value_class = get_gdscript(dic_value["script_inheritance"])
+			key_obj = str_to_var(json_key)
+			if !key_obj: # if null revert to json key
+				key_obj = json_key
+		
+		if propert_value.get_typed_value_script() and typeof(json_value) == TYPE_STRING:
+			var data = JSON.parse_string(json_value)
+			if data:
+				json_value = data
+		if typeof(json_value) == TYPE_DICTIONARY or typeof(json_value) == TYPE_OBJECT:
+			var value_script: GDScript = null
+			if "script_inheritance" in json_value:
+				value_script = get_gdscript(json_value["script_inheritance"])
 			else:
-				value_class = propert_value.get_typed_value_script()
-			value_obj = json_to_class(value_class, dic_value)
-		elif typeof(dic_value) == TYPE_ARRAY:
-			value_obj = convert_json_to_array(dic_value)
+				value_script = load(propert_value.get_typed_value_script().get_path())
+			value_obj = json_to_class(value_script, json_value)
+		elif typeof(json_value) == TYPE_ARRAY:
+			value_obj = convert_json_to_array(json_value)
 		else:
-			value_obj = str_to_var(dic_value)
-			if !value_obj:
-				value_obj = dic_value
-		propert_value[key_obj] = value_obj
+			value_obj = str_to_var(json_value)
+			if !value_obj: # if null revert to json key
+				value_obj = json_value
+		propert_value.set(key_obj, value_obj)
 
 #endregion
 
@@ -319,30 +323,26 @@ static func get_node_tres_path(path: String) -> String:
 static func convert_array_to_json(array: Array) -> Array:
 	var json_array: Array = []
 	for element: Variant in array:
-		if element is Object:
-			json_array.append(class_to_json(element, save_temp_resources_tres, !array.is_typed()))
-		elif element is Array:
-			json_array.append(convert_array_to_json(element))
-		elif element is Dictionary:
-			json_array.append(convert_dictionary_to_json(element))
-		elif type_string(typeof(element)).begins_with("Vector"):
-			json_array.append(var_to_str(element))
-		else:
-			json_array.append(element)
+		json_array.append(refcounted_to_value(element, array.is_typed()))
 	return json_array
 
 ## Helper function to recursively convert Godot dictionaries to JSON dictionaries.
 static func convert_dictionary_to_json(dictionary: Dictionary) -> Dictionary:
 	var json_dictionary: Dictionary = {}
 	for key: Variant in dictionary.keys():
-		var value: Variant = dictionary[key]
-		if value is Object:
-			json_dictionary[key] = class_to_json(value, save_temp_resources_tres, !dictionary.is_typed())
-		elif value is Array:
-			json_dictionary[key] = convert_array_to_json(value)
-		elif value is Dictionary:
-			json_dictionary[key] = convert_dictionary_to_json(value)
-		else:
-			json_dictionary[key] = value
+		var parsed_key: Variant = refcounted_to_value(key, dictionary.is_typed())
+		var parsed_value: Variant = refcounted_to_value(dictionary.get(key), dictionary.is_typed())
+		json_dictionary.set(parsed_key, parsed_value)
 	return json_dictionary
 #endregion
+
+## Helper function to turn a refCount into parsable value.
+static func refcounted_to_value(variant_value: Variant, is_typed: bool = false) -> Variant:
+		if variant_value is Object:
+			return class_to_json(variant_value, save_temp_resources_tres, !is_typed)
+		elif variant_value is Array:
+			return convert_array_to_json(variant_value)
+		elif variant_value is Dictionary:
+			return convert_dictionary_to_json(variant_value)
+		else:
+			return variant_value
