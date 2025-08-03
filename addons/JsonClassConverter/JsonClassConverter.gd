@@ -61,7 +61,11 @@ static func json_string_to_class(castClass: GDScript, json_string: String) -> Ob
 ## This is the core deserialization function.
 static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 	# Create an instance of the target class
-	var _class: Object = castClass.new() as Object
+	var _class: Object = null
+	if castClass == null:
+		_class = Object.new()
+	else:
+		_class = castClass.new() as Object
 	var properties: Array = _class.get_property_list()
 
 	# Iterate through each key-value pair in the JSON dictionary
