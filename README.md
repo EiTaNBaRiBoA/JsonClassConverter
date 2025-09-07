@@ -8,7 +8,6 @@ This GDScript provides a powerful set of utility functions for converting Godot 
 	* Converts Godot class instances into JSON-compatible dictionaries.
 	* Handles nested objects and arrays recursively, preserving complex data structures.
 	* Supports saving JSON data to files with optional encryption for enhanced security.
-	* Option to save nested resources as separate `.tres` files or directly embed their data.
 * **Deserialization (JSON to Class):**
 	* Loads JSON data from files with optional decryption for secure data retrieval.
 	* Converts JSON strings and dictionaries back into Godot class instances.
@@ -40,12 +39,9 @@ var player_data = PlayerData.new()
 # Option 1: Save resources inline within the JSON (default)
 var json_data = JsonClassConverter.class_to_json(json_data) 
 
-# Option 2: Save resources as separate temporary .tres files (in 'user://temp_resource/')
-var json_data = JsonClassConverter.class_to_json(json_data, true)
+# json_data now holds a Dictionary representation of your class instance.
 
-json_data now holds a Dictionary representation of your class instance.
-
-# Option 3: Convert a Class Instance to a JSON String
+# Option 2: Convert a Class Instance to a JSON String
 var json_string: String = JsonClassConverter.class_to_json_string(player_data)
 ```
 
