@@ -94,3 +94,41 @@ static func convert_json_to_array(json_array: Array, cast_class: GDScript = null
 	return godot_array
 
 #endregion
+
+
+#region Comparison Helper
+# Compares two dictionaries.
+static func _compare_dictionaries(a: Dictionary, b: Dictionary) -> Dictionary:
+	var diff: Dictionary = {}
+	var all_keys: Array = a.keys()
+	for key in b.keys():
+		if not all_keys.has(key):
+			all_keys.append(key)
+	for key in all_keys:
+		var key_in_a: bool = a.has(key)
+		var key_in_b: bool = b.has(key)
+
+		if key_in_a and not key_in_b:
+			# Key was removed in 'b'.
+			diff[key] = {"old": a[key], "new": null}
+		elif not key_in_a and key_in_b:
+			# Key was added in 'b'.
+			diff[key] = {"old": null, "new": b[key]}
+		else:
+			# Key exists in both, so we recurse to compare their values.
+			var result: Dictionary = _compare_recursive(a[key], b[key])
+			if not result.is_empty():
+				# If the recursive comparison found a difference, add it to our diff report.
+				diff[key] = result
+	return diff
+
+
+# Compares two arrays.
+static func _compare_arrays(a: Array, b: Array) -> Dictionary:
+	# This correctly handles nested structures within the arrays.
+	if JSON.stringify(a) != JSON.stringify(b):
+		return {"old": a, "new": b}
+	# The arrays are identical.
+	return {}
+	
+#endregion

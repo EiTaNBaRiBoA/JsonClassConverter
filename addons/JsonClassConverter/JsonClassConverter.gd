@@ -229,13 +229,13 @@ static func check_equal_json_files(first_json: Variant, second_json: Variant) ->
 		return true
 	return false
 
-## finds between two jsons the diff and returns it as dictionary
-static func find_diff_json(first_json: Variant, second_json: Variant) -> Dictionary:
+## finds between two jsons the diff and returns the diff dictionary showing old value and new value
+static func compare_jsons_diff(first_json: Variant, second_json: Variant) -> Dictionary:
 	var first_dict: Dictionary = _get_dict_from_type(first_json)
 	var second_dict: Dictionary = _get_dict_from_type(second_json)
 	if check_equal_json_files(first_dict, second_dict):
 		return {}
-	return {} # TODO if they are not equal jsons return the dictionary diff
+	return _compare_recursive(first_dict, second_dict)
 
 ## operations between two json from and to differences between one json to the other json
 static func json_operation(from_json: Variant, to_json: Variant) -> Dictionary:

@@ -49,3 +49,22 @@ static func _get_dict_from_type(json: Variant) -> Dictionary:
 			else:
 				dict = result
 	return dict
+
+# Internal recursive function to perform the comparison.
+static func _compare_recursive(a: Variant, b: Variant) -> Dictionary:
+	# If the types are different, they are not equal. Return the change.
+	if typeof(a) != typeof(b):
+		return {"old": a, "new": b}
+	# Handle comparison based on the type of the variables.
+	match typeof(a):
+		TYPE_DICTIONARY:
+			return JsonClassHelpers._compare_dictionaries(a, b)
+		TYPE_ARRAY:
+			return JsonClassHelpers._compare_arrays(a, b)
+		_:
+			# For all other primitive types (int, float, bool, string, null).
+			if a != b:
+				return {"old": a, "new": b}
+			else:
+				# They are identical, so there is no difference.
+				return {}
