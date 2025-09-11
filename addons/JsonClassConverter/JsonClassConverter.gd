@@ -238,16 +238,30 @@ static func compare_jsons_diff(first_json: Variant, second_json: Variant) -> Dic
 	return _compare_recursive(first_dict, second_dict)
 
 ## operations between two json from and to differences between one json to the other json
-static func json_operation(from_json: Variant, to_json: Variant) -> Dictionary:
+static func json_operation(from_json: Variant, json_ref: Variant, operation_type: Operation) -> Dictionary:
 	var first_dict: Dictionary = _get_dict_from_type(from_json)
-	var second_dict: Dictionary = _get_dict_from_type(to_json)
+	var second_dict: Dictionary = _get_dict_from_type(json_ref)
 	if check_equal_json_files(first_dict, second_dict):
 		return {}
+	match operation_type:
+		Operation.Add:
+			pass
+		Operation.Replace:
+			pass
+		Operation.Remove:
+			JsonClassHelpers._remove_keys_recursively(from_json,json_ref,false)
+		Operation.RemoveValue:
+			JsonClassHelpers._remove_keys_recursively(from_json,json_ref,true)
 	""" TODO If they are not equal start operation: 
 	 1. replace values between jsons with same key and depth of dictionary with different values to the to_json.
 	 2. remove value from same key in dictionary and same depth of the dictionary to the to_json.
 	 3. adding values in the same key and depth to the to_json.
 	"""
 	return {}
+
+
+enum Operation {
+	Add,Replace,Remove,RemoveValue
+}
 
 #endregion

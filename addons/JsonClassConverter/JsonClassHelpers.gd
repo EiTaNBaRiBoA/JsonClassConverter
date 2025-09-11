@@ -132,3 +132,52 @@ static func _compare_arrays(a: Array, b: Array) -> Dictionary:
 	return {}
 	
 #endregion
+
+
+#region Operation Helpers
+
+# removes keys from json_modify using the json_ref as a reference
+static func _remove_keys_recursively(json_modify: Variant, json_ref: Dictionary, specific_value : bool) -> Variant:
+	# We determine the type of the data to process it accordingly.
+	match typeof(json_modify):
+		TYPE_DICTIONARY:
+			# Iterate over a copy of the keys, as we will be modifying the
+			# dictionary during the loop, which is not safe otherwise.
+			for key in json_modify.keys():
+				# Check if the key exists in the dictionary of keys to remove.
+				if json_ref.has(key):
+					if specific_value:
+						var value = json_modify[key]
+						if value == json_ref[key]:
+							json_modify.erase(key)
+							continue
+						else:
+							# If the key was not erased (either because the key didn't match the removal dict,
+							# or the key matched but the value didn't), we recurse into the value.
+							_remove_keys_recursively(json_modify[key], json_ref,specific_value)
+					else:
+						json_modify.erase(key)
+				else:
+					# If the key is kept, we recurse into its value
+					# to clean any nested data structures.
+					_remove_keys_recursively(json_modify[key], json_ref,specific_value)
+		TYPE_ARRAY:
+			# If the data is an array, we simply recurse into each of its elements.
+			for item in json_modify:
+				_remove_keys_recursively(item, json_ref,specific_value)
+		TYPE_OBJECT:
+			# If we encounter an object, we check its properties.
+			# We don't remove properties from the object itself, but we
+			# clean any dictionaries or arrays held by those properties.
+			var properties = json_modify.get_property_list()
+			for p in properties:
+				var prop_name = p.name
+				# We avoid recursing into the object's script itself.
+				if prop_name != "script":
+					var prop_value = json_modify.get(prop_name)
+					_remove_keys_recursively(prop_value, json_ref,specific_value)
+	return json_modify
+
+
+
+#endregion
