@@ -40,7 +40,7 @@ static func json_file_to_class(castClass: GDScript, file_path: String, security_
 		printerr("The provided class is null.")
 		return null
 	var parsed_results = json_file_to_dict(file_path, security_key)
-	if parsed_results == null:
+	if parsed_results.is_empty():
 		return castClass.new()
 	return json_to_class(castClass, parsed_results)
 
