@@ -124,7 +124,7 @@ var loaded_player: PlayerData = JsonClassConverter.json_file_to_class(PlayerData
 
 # Print the loaded player's name
 print(loaded_player.name)  # Output: Bob
-
+```
 
 
 ## 3. JSON Utilities and Operations
@@ -166,7 +166,8 @@ Apply changes from one JSON object to another using a specific operation. This i
 
 The available operations are defined in the `JsonClassConverter.Operation` enum:
 
-  * `Add`: Adds keys from the reference JSON that do not exist in the source JSON.
+  * `Add`: Adds keys from the reference JSON.
+  * `AddDiffer`: Adds keys from the reference JSON that do not exist in the source JSON.
   * `Replace`: Updates values in the source JSON with values from the reference JSON for all matching keys.
   * `Remove`: Removes keys from the source JSON that also exist in the reference JSON, regardless of their value.
   * `RemoveValue`: Removes a key-value pair from the source JSON only if both the key *and* its value match a pair in the reference JSON.
