@@ -152,7 +152,7 @@ static func _apply_keys_recursively(operation_type: JsonClassConverter.Operation
 						# If the key was not erased (either because the key didn't match the removal dict,
 						# or the key matched but the value didn't), we recurse into the value.
 						operation_key_value(operation_type, json_modify, key, json_modify[key], _apply_keys_recursively(operation_type, json_modify[key], json_ref[key]))
-				else: # remove , replace , add (for add and replace we need recursive if they are the same value key)
+				else: # remove , replace , add , addDiffer (for add and replace we need recursive if they are the same value key)
 					operation_key_value(operation_type, json_modify, key, json_modify[key], json_ref[key])
 			else:
 				# Adding new key to json_modify
@@ -178,11 +178,23 @@ static func operation_key_value(operation_type: JsonClassConverter.Operation, js
 	match operation_type:
 		JsonClassConverter.Operation.Add:
 			if old_value is Array:
-				old_value.append(new_value)
+				old_value.append_array(new_value)
 				return true
 			elif old_value != null:
 				json_modify[key] = [old_value, new_value]
 				return true
+			else:
+				json_modify[key] = new_value
+				return true
+		JsonClassConverter.Operation.AddDiffer:
+			if old_value is Array && new_value is Array:
+				if not old_value.hash() == new_value.hash():
+					for element in new_value: # Start with a duplicate of the first array
+						if not json_modify[key].has(element): # Check if the element from array2 is already in merged_array
+							json_modify[key].append(element) # If not, append it
+							return true
+			elif old_value is Dictionary && new_value is Dictionary:
+				json_modify[key] = _apply_keys_recursively(operation_type, old_value, new_value)
 			else:
 				json_modify[key] = new_value
 				return true
@@ -195,16 +207,30 @@ static func operation_key_value(operation_type: JsonClassConverter.Operation, js
 		JsonClassConverter.Operation.Remove:
 			json_modify.erase(key)
 		JsonClassConverter.Operation.RemoveValue:
-			if (old_value == new_value):
-				json_modify.erase(key)
-				return true # success removed the key
-			elif new_value == null:
-				json_modify.erase(key)
-				 # if we want to remove a key by a specific value null specifically 
-				 # "test" : 1 , we pass "test" : null and it will delete the key
-				return true
+			if old_value is Array && new_value is Array:
+				if not old_value.hash() == new_value.hash():
+					for element in new_value: # Start with a duplicate of the first array
+						if not old_value.has(element): # Check if the element from array2 is already in merged_array
+							old_value.erase(element) # If not, remove it
+							return true
+				elif old_value.hash() == new_value.hash():
+					json_modify.erase(key)
+					return true # success removed the key
+				elif new_value == null:
+					json_modify.erase(key)
+				 	# if we want to remove a key by a specific value null specifically 
+				 	# "test" : 1 , we pass "test" : null and it will delete the key
+					return true
+			elif old_value is Dictionary && new_value is Dictionary:
+				json_modify[key] = _apply_keys_recursively(operation_type, old_value, new_value)
+				if json_modify[key] == null:
+					json_modify.erase(key)
 			else:
-				return false # not same values
+				if old_value == new_value:
+					json_modify.erase(key)
+					return true
+				else:
+					return false
 	return false # couldn't complete operation
 #endregion
 
@@ -213,6 +239,11 @@ static func operation_values(operation_type: JsonClassConverter.Operation, old_v
 	match operation_type:
 		JsonClassConverter.Operation.Add:
 			return [old_value, new_value]
+		JsonClassConverter.Operation.AddDiffer:
+			if old_value == new_value:
+				return old_value
+			else:
+				return [old_value, new_value]
 		JsonClassConverter.Operation.Replace:
 			return new_value
 		JsonClassConverter.Operation.Remove:

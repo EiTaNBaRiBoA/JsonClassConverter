@@ -251,7 +251,7 @@ static func json_operation(castClass: GDScript, from_json: Variant, json_ref: Va
 
 
 enum Operation {
-	Add, Replace, Remove, RemoveValue
+	Add, AddDiffer, Replace, Remove, RemoveValue
 }
 
 #endregion
