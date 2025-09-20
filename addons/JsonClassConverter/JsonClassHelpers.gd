@@ -137,47 +137,91 @@ static func _compare_arrays(a: Array, b: Array) -> Dictionary:
 #region Operation Helpers
 
 # removes keys from json_modify using the json_ref as a reference
-static func _remove_keys_recursively(json_modify: Variant, json_ref: Dictionary, specific_value : bool) -> Variant:
-	# We determine the type of the data to process it accordingly.
-	match typeof(json_modify):
-		TYPE_DICTIONARY:
-			# Iterate over a copy of the keys, as we will be modifying the
-			# dictionary during the loop, which is not safe otherwise.
-			for key in json_modify.keys():
-				# Check if the key exists in the dictionary of keys to remove.
-				if json_ref.has(key):
-					if specific_value:
-						var value = json_modify[key]
-						if value == json_ref[key]:
-							json_modify.erase(key)
-							continue
-						else:
-							# If the key was not erased (either because the key didn't match the removal dict,
-							# or the key matched but the value didn't), we recurse into the value.
-							_remove_keys_recursively(json_modify[key], json_ref,specific_value)
+static func _apply_keys_recursively(operation_type: JsonClassConverter.Operation, json_modify: Variant, json_ref: Variant) -> Variant:
+# We determine the type of the data to process it accordingly.
+	if json_ref is Dictionary:
+		# Iterate over a copy of the keys, as we will be modifying the
+		# dictionary during the loop, which is not safe otherwise.
+		for key in json_ref.keys():
+			# Check if the key exists in the dictionary of keys to remove.
+			if json_modify.has(key):
+				if (operation_type == JsonClassConverter.Operation.RemoveValue):
+					if (operation_key_value(operation_type, json_modify, key, json_modify[key], json_ref[key])):
+						continue
 					else:
-						json_modify.erase(key)
-				else:
-					# If the key is kept, we recurse into its value
-					# to clean any nested data structures.
-					_remove_keys_recursively(json_modify[key], json_ref,specific_value)
-		TYPE_ARRAY:
-			# If the data is an array, we simply recurse into each of its elements.
-			for item in json_modify:
-				_remove_keys_recursively(item, json_ref,specific_value)
-		TYPE_OBJECT:
-			# If we encounter an object, we check its properties.
-			# We don't remove properties from the object itself, but we
-			# clean any dictionaries or arrays held by those properties.
-			var properties = json_modify.get_property_list()
-			for p in properties:
-				var prop_name = p.name
-				# We avoid recursing into the object's script itself.
-				if prop_name != "script":
-					var prop_value = json_modify.get(prop_name)
-					_remove_keys_recursively(prop_value, json_ref,specific_value)
+						# If the key was not erased (either because the key didn't match the removal dict,
+						# or the key matched but the value didn't), we recurse into the value.
+						operation_key_value(operation_type, json_modify, key, json_modify[key], _apply_keys_recursively(operation_type, json_modify[key], json_ref[key]))
+				else: # remove , replace , add (for add and replace we need recursive if they are the same value key)
+					operation_key_value(operation_type, json_modify, key, json_modify[key], json_ref[key])
+			else:
+				# Adding new key to json_modify
+				operation_key_value(operation_type, json_modify, key, null, json_ref[key])
+	elif json_ref is Array:
+		if json_modify is not Array:
+			return json_ref
+		# If the data is an array, we simply recurse into each of its elements.
+		for i in json_ref:
+			var new_value = _apply_keys_recursively(operation_type, json_modify[i], json_ref[i])
+			match operation_type:
+				JsonClassConverter.Operation.Remove || JsonClassConverter.Operation.RemoveValue:
+					if new_value == null:
+						json_modify.remove_at(i)
+				_:
+					json_modify[i] = new_value
+	else: # not object or array or dict than primitive
+		return operation_values(operation_type, json_modify, json_ref)
 	return json_modify
 
-
-
+## Works on dictionaries only
+static func operation_key_value(operation_type: JsonClassConverter.Operation, json_modify: Variant, key: Variant, old_value: Variant, new_value: Variant) -> bool:
+	match operation_type:
+		JsonClassConverter.Operation.Add:
+			if old_value is Array:
+				old_value.append(new_value)
+				return true
+			elif old_value != null:
+				json_modify[key] = [old_value, new_value]
+				return true
+			else:
+				json_modify[key] = new_value
+				return true
+		JsonClassConverter.Operation.Replace:
+				if (old_value == new_value):
+					return false # same value to the key nothing to replace
+				else:
+					json_modify[key] = new_value
+					return true # successfully replaced the value of a key
+		JsonClassConverter.Operation.Remove:
+			json_modify.erase(key)
+		JsonClassConverter.Operation.RemoveValue:
+			if (old_value == new_value):
+				json_modify.erase(key)
+				return true # success removed the key
+			elif new_value == null:
+				json_modify.erase(key)
+				 # if we want to remove a key by a specific value null specifically 
+				 # "test" : 1 , we pass "test" : null and it will delete the key
+				return true
+			else:
+				return false # not same values
+	return false # couldn't complete operation
 #endregion
+
+## Works on primitives only
+static func operation_values(operation_type: JsonClassConverter.Operation, old_value: Variant, new_value: Variant) -> Variant:
+	match operation_type:
+		JsonClassConverter.Operation.Add:
+			return [old_value, new_value]
+		JsonClassConverter.Operation.Replace:
+			return new_value
+		JsonClassConverter.Operation.Remove:
+			return null # later using operationtype we could remove the key
+		JsonClassConverter.Operation.RemoveValue:
+			if (old_value == new_value):
+				return null
+				 # if we want to remove a key by a specific value null specifically 
+				 # "test" : 1 , we pass "test" : null and it will delete the key
+			else:
+				return old_value
+	return old_value # couldn't complete operation
