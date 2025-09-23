@@ -241,8 +241,11 @@ static func compare_jsons_diff(first_json: Variant, second_json: Variant) -> Dic
 static func json_operation(from_json: Variant, json_ref: Variant, operation_type: Operation) -> Dictionary:
 	var first_dict: Dictionary = _get_dict_from_type(from_json)
 	var second_dict: Dictionary = _get_dict_from_type(json_ref)
-	if check_equal_json_files(first_dict, second_dict):
-		return {}
+	if check_equal_json_files(first_dict, second_dict) && operation_type != Operation.Add:
+		if operation_type == Operation.Replace:
+			return first_dict
+		else:
+			return {}
 	return JsonClassHelpers._apply_keys_recursively(operation_type, first_dict, second_dict)
 
 
