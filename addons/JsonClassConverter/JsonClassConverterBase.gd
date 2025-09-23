@@ -41,6 +41,8 @@ static func _get_dict_from_type(json: Variant) -> Dictionary:
 	if (_valid_json_type(json)):
 		if json is Dictionary:
 			dict = json
+		elif json is Object:
+			dict = JsonClassConverter.class_to_json(json)
 		else:
 			var result = JSON.parse_string(json)
 			if result == null:

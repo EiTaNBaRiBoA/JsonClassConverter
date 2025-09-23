@@ -174,32 +174,32 @@ The available operations are defined in the `JsonClassConverter.Operation` enum:
 
 ```gdscript
 # --- Example Data ---
-var source_json = {"a": 1, "b": 2, "c": 3}
-var reference_json = {"b": 20, "c": 3, "d": 4}
+var source_json = {"a": 1, "b": 2, "c": 3} ## source_json can be an class object, file path or dictionary.
+var reference_json = {"b": 20, "c": 3, "d": 4} ## reference_json can be an class object, file path or dictionary.
 
 # --- Operation: Add ---
 # Adds key "d" because it's in reference_json but not in source_json
-var add_result = JsonClassConverter.json_operation(null, source_json, reference_json, JsonClassConverter.Operation.Add)
+var add_result = JsonClassConverter.json_operation(source_json, reference_json, JsonClassConverter.Operation.Add)
 print(add_result) # Output: {"a": 1, "b": [2,20], "c": [3,3], "d": 4}
 
 # --- Operation: AddDiffer ---
 # Adds key "d" because it's in reference_json but not in source_json
-var add_result = JsonClassConverter.json_operation(null, source_json, reference_json, JsonClassConverter.Operation.AddDiffer)
+var add_result = JsonClassConverter.json_operation(source_json, reference_json, JsonClassConverter.Operation.AddDiffer)
 print(add_result) # Output: {"a": 1, "b": [2,20], "c": 3, "d": 4}
 
 # --- Operation: Replace ---
 # Replaces value of "b" with 20 and "c" with 3
-var replace_result = JsonClassConverter.json_operation(null, source_json, reference_json, JsonClassConverter.Operation.Replace)
+var replace_result = JsonClassConverter.json_operation(source_json, reference_json, JsonClassConverter.Operation.Replace)
 print(replace_result) # Output: {"a": 1, "b": 20, "c": 3}
 
 # --- Operation: Remove ---
 # Removes "b" and "c" because their keys exist in reference_json
-var remove_result = JsonClassConverter.json_operation(null, source_json, reference_json, JsonClassConverter.Operation.Remove)
+var remove_result = JsonClassConverter.json_operation(source_json, reference_json, JsonClassConverter.Operation.Remove)
 print(remove_result) # Output: {"a": 1}
 
 # --- Operation: RemoveValue ---
 # Removes "c" because both key and value ("c": 3) match.
 # Does not remove "b" because values differ (2 vs 20).
-var remove_value_result = JsonClassConverter.json_operation(null, source_json, reference_json, JsonClassConverter.Operation.RemoveValue)
+var remove_value_result = JsonClassConverter.json_operation(source_json, reference_json, JsonClassConverter.Operation.RemoveValue)
 print(remove_value_result) # Output: {"a": 1, "b": 2}
 ```

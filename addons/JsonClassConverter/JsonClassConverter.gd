@@ -238,16 +238,12 @@ static func compare_jsons_diff(first_json: Variant, second_json: Variant) -> Dic
 	return _compare_recursive(first_dict, second_dict)
 
 ## operations between two json from and to differences between one json to the other json
-static func json_operation(castClass: GDScript, from_json: Variant, json_ref: Variant, operation_type: Operation) -> Dictionary:
+static func json_operation(from_json: Variant, json_ref: Variant, operation_type: Operation) -> Dictionary:
 	var first_dict: Dictionary = _get_dict_from_type(from_json)
 	var second_dict: Dictionary = _get_dict_from_type(json_ref)
 	if check_equal_json_files(first_dict, second_dict):
 		return {}
-	if castClass == null:
-		return JsonClassHelpers._apply_keys_recursively(operation_type, first_dict, second_dict)
-	else:
-		json_to_class(castClass, JsonClassHelpers._apply_keys_recursively(operation_type, first_dict, second_dict))
-	return {}
+	return JsonClassHelpers._apply_keys_recursively(operation_type, first_dict, second_dict)
 
 
 enum Operation {
