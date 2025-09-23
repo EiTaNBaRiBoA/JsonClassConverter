@@ -16,7 +16,7 @@ This GDScript provides a powerful set of utility functions for converting Godot 
 	* Quickly check if two JSON files, strings, or dictionaries are identical.
 	* Generate a detailed "diff" dictionary highlighting changes, additions, and deletions between two JSON objects.
 * **JSON Operations:**
-	* Perform powerful patch operations between two JSON objects, including `Add`, `Replace`, `Remove`, and `RemoveValue`.
+	* Perform powerful patch operations between two JSON objects, including `Add`, `AddDiffer`, `Replace`, `Remove`, and `RemoveValue`.
 	* Apply changes from one JSON object to another, useful for patching saved data or syncing states.
 * **Automatic Type Recognition:** Intelligently manages various data types, including:
 	* Vectors (`Vector2`, `Vector3`, etc.)
