@@ -117,7 +117,7 @@ static func json_to_class_unknown(json: Dictionary) -> Object:
 		printerr("The json doesn't contains the 'script_inheritance' (class's name)")
 		return null
 	
-	var script_type: Object = get_gdscript(json["script_inheritance"])
+	var script_type: Object = _get_gdscript(json["script_inheritance"])
 	if script_type == null:
 		print("The class given ", json["script_inheritance"], " couldn't be found in the global scope")
 		return null
