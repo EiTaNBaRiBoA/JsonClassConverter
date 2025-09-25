@@ -107,6 +107,22 @@ static func json_string_to_class(castClass: GDScript, json_string: String) -> Ob
 		return json_to_class(castClass, json.data)
 	return castClass.new()
 
+## Converts a JSON dictonary into its source class [b]IF[/b] 'script_inheritance' 
+## was setted previusly with its source class's name
+static func json_to_class_unknown(json: Dictionary) -> Object:
+	# just to be sure it's correctly parsed
+	json = JsonClassHelpers.convert_dictionary_to_json(json)
+	
+	if not "script_inheritance" in json:
+		printerr("The json doesn't contains the 'script_inheritance' (class's name)")
+		return null
+	
+	var script_type: Object = _get_gdscript(json["script_inheritance"])
+	if script_type == null:
+		print("The class given ", json["script_inheritance"], " couldn't be found in the global scope")
+		return null
+	
+	return json_to_class(script_type, json)
 
 ## Loads a JSON file and parses it into a Dictionary.
 ## Supports optional decryption using a security key.
