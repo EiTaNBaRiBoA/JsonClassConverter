@@ -44,8 +44,8 @@ static func convert_json_to_dictionary(propert_value: Dictionary, json_dictionar
 				json_key = data
 		if typeof(json_key) == TYPE_DICTIONARY or typeof(json_key) == TYPE_OBJECT:
 			var key_script: GDScript = null
-			if "script_inheritance" in json_key:
-				key_script = _get_gdscript(json_key["script_inheritance"])
+			if SCRIPT_INHERITANCE in json_key:
+				key_script = _get_gdscript(json_key.get(SCRIPT_INHERITANCE))
 			else:
 				key_script = load(propert_value.get_typed_key_script().get_path())
 			key_obj = JsonClassConverter.json_to_class(key_script, json_key)
@@ -62,8 +62,8 @@ static func convert_json_to_dictionary(propert_value: Dictionary, json_dictionar
 				json_value = data
 		if typeof(json_value) == TYPE_DICTIONARY or typeof(json_value) == TYPE_OBJECT:
 			var value_script: GDScript = null
-			if "script_inheritance" in json_value:
-				value_script = _get_gdscript(json_value["script_inheritance"])
+			if SCRIPT_INHERITANCE in json_value:
+				value_script = _get_gdscript(json_value.get(SCRIPT_INHERITANCE))
 			else:
 				value_script = load(propert_value.get_typed_value_script().get_path())
 			value_obj = JsonClassConverter.json_to_class(value_script, json_value)
@@ -84,8 +84,8 @@ static func convert_json_to_array(json_array: Array, cast_class: GDScript = null
 	for element: Variant in json_array:
 		if typeof(element) == TYPE_DICTIONARY:
 			# If json element has a script_inheritance, get the script (for inheritance or for untyped array/dictionary)
-			if "script_inheritance" in element:
-				cast_class = _get_gdscript(element["script_inheritance"])
+			if SCRIPT_INHERITANCE in element:
+				cast_class = _get_gdscript(element.get(SCRIPT_INHERITANCE))
 			godot_array.append(JsonClassConverter.json_to_class(cast_class, element))
 		elif typeof(element) == TYPE_ARRAY:
 			godot_array.append(convert_json_to_array(element))

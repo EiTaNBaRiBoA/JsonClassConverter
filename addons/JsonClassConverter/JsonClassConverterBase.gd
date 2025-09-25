@@ -1,5 +1,7 @@
 @abstract class_name JsonClassConverterBase
 
+const SCRIPT_INHERITANCE = "script_inheritance"
+
 ## Checks if the directory for the given file path exists, creating it if necessary.
 static func _check_dir(file_path: String) -> void:
 	if !DirAccess.dir_exists_absolute(file_path.get_base_dir()):
