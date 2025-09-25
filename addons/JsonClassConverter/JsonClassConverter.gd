@@ -141,10 +141,10 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 			var script_type: GDScript = _get_gdscript(script_name)
 			if script_type != null:
 				_class = script_type.new() as Object
-			# creating an object with attributes
-			else:
-				_class = Object.new()
-				is_null_script_and_is_object = true
+		# creating an object with attributes
+		else:
+			_class = Object.new()
+			is_null_script_and_is_object = true
 	# Creating an class object
 	else:
 		_class = castClass.new() as Object
