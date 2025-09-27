@@ -44,10 +44,10 @@ static func class_to_json(_class: Object, specify_class: bool = false) -> Dictio
 		if not property_name.is_empty() and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE and property.usage & PROPERTY_USAGE_STORAGE > 0:
 			if property_value is Array:
 				# Recursively convert arrays to JSON
-				dictionary[property_name] = JsonClassHelpers.convert_array_to_json(property_value)
+				dictionary[property_name] = convert_array_to_json(property_value)
 			elif property_value is Dictionary:
 				# Recursively convert dictionaries to JSON
-				dictionary[property_name] = JsonClassHelpers.convert_dictionary_to_json(property_value)
+				dictionary[property_name] = convert_dictionary_to_json(property_value)
 			# If the property is a Resource:
 			elif property["type"] == TYPE_OBJECT and property_value != null and property_value.get_property_list():
 				if property_value is Resource and ResourceLoader.exists(property_value.resource_path):
@@ -107,7 +107,6 @@ static func json_string_to_class(castClass: GDScript, json_string: String) -> Ob
 		return json_to_class(castClass, json.data)
 	return castClass.new()
 
-
 ## Loads a JSON file and parses it into a Dictionary.
 ## Supports optional decryption using a security key.
 static func json_file_to_dict(file_path: String, security_key: String = "") -> Dictionary:
@@ -125,7 +124,6 @@ static func json_file_to_dict(file_path: String, security_key: String = "") -> D
 		if parsed_results is Dictionary or parsed_results is Array:
 			return parsed_results
 	return {}
-
 
 ## Converts a JSON dictionary into a Godot class instance.
 ## This is the core deserialization function.
@@ -198,7 +196,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 					if property_value.is_typed() and property_value.get_typed_script():
 						arr_script = load(property_value.get_typed_script().get_path())
 						# Recursively convert the JSON array to a Godot array
-					var arrayTemp: Array = JsonClassHelpers.convert_json_to_array(value, arr_script)
+					var arrayTemp: Array = convert_json_to_array(value, arr_script)
 						
 						# Handle Vector arrays (convert string elements back to Vectors)
 					if type_string(property_value.get_typed_builtin()).begins_with("Vector"):
@@ -208,7 +206,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 						_class.get(property.name).assign(arrayTemp)
 				# Case 3: Property is a Typed Dictionary
 				elif property_value is Dictionary and property_value.is_typed():
-					JsonClassHelpers.convert_json_to_dictionary(property_value, value)
+					convert_json_to_dictionary(property_value, value)
 				# Case 4: Property is a simple type (not an object or array)
 				else:
 					# Special handling for Color type (stored as a hex string)
@@ -247,8 +245,7 @@ static func compare_jsons_diff(first_json: Variant, second_json: Variant) -> Dic
 	var second_dict := _get_dict_from_type(second_json)
 	if first_dict.hash() == second_dict.hash():
 		return {}
-	# return _compare_recursive(first_dict, second_dict)
-	return _compare_recursive(first_dict, second_dict)
+	return JsonClassHelpers.compare_recursive(first_dict, second_dict)
 
 
 ## Performs a specified operation on a JSON structure ('base_json') using another
@@ -264,7 +261,6 @@ static func json_operation(base_json: Variant, ref_json: Variant, operation_type
 			return base_dict
 		if operation_type != Operation.Add:
 			return {}
-
-	return JsonClassHelpers._apply_operation_recursively(base_dict, ref_dict, operation_type)
+	return JsonClassHelpers.apply_operation_recursively(base_dict, ref_dict, operation_type)
 
 #endregion
