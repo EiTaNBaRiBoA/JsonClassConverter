@@ -57,92 +57,95 @@ static func _get_dict_from_type(json: Variant) -> Dictionary:
 static func convert_array_to_json(array: Array) -> Array:
 	var json_array: Array = []
 	for element: Variant in array:
-		json_array.append(refcounted_to_value(element, array.is_typed()))
+		json_array.append(_serialize_variant(element, array.is_typed()))
 	return json_array
 
 ## Helper function to recursively convert Godot dictionaries to JSON dictionaries.
 static func convert_dictionary_to_json(dictionary: Dictionary) -> Dictionary:
 	var json_dictionary: Dictionary = {}
 	for key: Variant in dictionary.keys():
-		var parsed_key: Variant = refcounted_to_value(key, dictionary.is_typed())
-		var parsed_value: Variant = refcounted_to_value(dictionary.get(key), dictionary.is_typed())
-		json_dictionary.set(parsed_key, parsed_value)
+		var parsed_key: Variant = _serialize_variant(key, dictionary.is_typed())
+		var parsed_value: Variant = _serialize_variant(dictionary.get(key), dictionary.is_typed())
+		if typeof(parsed_value) == TYPE_INT: # casting to float due to json parse in godot will always parse int and enum as float
+			json_dictionary.set(parsed_key, float(parsed_value))
+		else:
+			json_dictionary.set(parsed_key, parsed_value)
 	return json_dictionary
 
-## Helper function to turn a refCount into parsable value.
-static func refcounted_to_value(variant_value: Variant, is_typed: bool = false) -> Variant:
-		if variant_value is Object:
-			return JsonClassConverter.class_to_json(variant_value, !is_typed)
-		elif variant_value is Array:
-			return convert_array_to_json(variant_value)
-		elif variant_value is Dictionary:
-			return convert_dictionary_to_json(variant_value)
-		else:
-			return variant_value
+# Converts a Godot Variant into a JSON-compatible Variant.
+static func _serialize_variant(variant_value: Variant, is_parent_typed: bool = false) -> Variant:
+	if variant_value is Object:
+		# If the parent is typed, the script path isn't needed. If untyped, it is.
+		var specify_script = not is_parent_typed
+		return JsonClassConverter.class_to_json(variant_value, specify_script)
+	elif variant_value is Array:
+		return convert_array_to_json(variant_value)
+	elif variant_value is Dictionary:
+		return convert_dictionary_to_json(variant_value)
+	elif type_string(typeof(variant_value)).begins_with("Vector"):
+		return var_to_str(variant_value)
+	elif variant_value is int:
+		# Godot's JSON.parse_string treats all numbers as floats.
+		# To ensure type consistency on deserialization, we cast all ints to floats here.
+		return float(variant_value)
+	else:
+		# For all other primitive types (float, string, bool), return as is.
+		return variant_value
 
 #endregion
 
 #region Json to Class
 
-## Helper function to recursively convert JSON dictionaries to Godot arrays.
-static func convert_json_to_dictionary(propert_value: Dictionary, json_dictionary: Dictionary) -> void:
-	for json_key: Variant in json_dictionary.keys():
-		var json_value: Variant = json_dictionary.get(json_key)
-		var key_obj: Variant = null
-		var value_obj: Variant = null
-		if propert_value.get_typed_key_script() and typeof(json_key) == TYPE_STRING:
-			var data = JSON.parse_string(json_key)
-			if data:
-				json_key = data
-		if typeof(json_key) == TYPE_DICTIONARY or typeof(json_key) == TYPE_OBJECT:
-			var key_script: GDScript = null
-			if SCRIPT_INHERITANCE in json_key:
-				key_script = _get_gdscript(json_key.get(SCRIPT_INHERITANCE))
-			else:
-				key_script = load(propert_value.get_typed_key_script().get_path())
-			key_obj = JsonClassConverter.json_to_class(key_script, json_key)
-		elif typeof(json_key) == TYPE_ARRAY:
-			key_obj = convert_json_to_array(json_key)
-		else:
-			key_obj = str_to_var(json_key)
-			if !key_obj: # if null revert to json key
-				key_obj = json_key
-		
-		if propert_value.get_typed_value_script() and typeof(json_value) == TYPE_STRING:
-			var data = JSON.parse_string(json_value)
-			if data:
-				json_value = data
-		if typeof(json_value) == TYPE_DICTIONARY or typeof(json_value) == TYPE_OBJECT:
-			var value_script: GDScript = null
-			if SCRIPT_INHERITANCE in json_value:
-				value_script = _get_gdscript(json_value.get(SCRIPT_INHERITANCE))
-			else:
-				value_script = load(propert_value.get_typed_value_script().get_path())
-			value_obj = JsonClassConverter.json_to_class(value_script, json_value)
-		elif typeof(json_value) == TYPE_ARRAY:
-			value_obj = convert_json_to_array(json_value)
-		elif typeof(json_value) == TYPE_BOOL or typeof(json_value) == TYPE_INT or typeof(json_value) == TYPE_FLOAT:
-			value_obj = json_value
-		else:
-			value_obj = str_to_var(json_value)
-			if !value_obj: # if null revert to json key
-				value_obj = json_value
-		propert_value.set(key_obj, value_obj)
+## Helper function to recursively convert a JSON dictionary into a target dictionary.
+static func _convert_json_to_dictionary(property_dict: Dictionary, json_dict: Dictionary) -> void:
+	var key_type_script: GDScript = property_dict.get_typed_key_script()
+	var value_type_script: GDScript = property_dict.get_typed_value_script()
+	for json_key: Variant in json_dict:
+		var json_value: Variant = json_dict[json_key]
+		var converted_key: Variant = _convert_variant(json_key, key_type_script)
+		var converted_value: Variant = _convert_variant(json_value, value_type_script)
+		property_dict.set(converted_key, converted_value)
 
-## Helper function to recursively convert JSON arrays to Godot arrays.
-static func convert_json_to_array(json_array: Array, cast_class: GDScript = null) -> Array:
+## Helper function to recursively convert a JSON array to a Godot array.
+static func _convert_json_to_array(json_array: Array, type_hint_script: GDScript = null) -> Array:
 	var godot_array: Array = []
 	for element: Variant in json_array:
-		if typeof(element) == TYPE_DICTIONARY:
-			# If json element has a script_inheritance, get the script (for inheritance or for untyped array/dictionary)
-			if SCRIPT_INHERITANCE in element:
-				cast_class = _get_gdscript(element.get(SCRIPT_INHERITANCE))
-			godot_array.append(JsonClassConverter.json_to_class(cast_class, element))
-		elif typeof(element) == TYPE_ARRAY:
-			godot_array.append(convert_json_to_array(element))
-		else:
-			godot_array.append(element)
+		godot_array.append(_convert_variant(element, type_hint_script))
 	return godot_array
+
+## Converts a single Variant from JSON into its target Godot type.
+static func _convert_variant(json_variant: Variant, type_hint_script: GDScript = null) -> Variant:
+	var processed_variant: Variant = json_variant
+	# Process the variant based on its actual type.
+	if processed_variant is Dictionary:
+		var script: GDScript = null
+		if SCRIPT_INHERITANCE in processed_variant:
+			# Prioritize script path embedded in the JSON data.
+			script = _get_gdscript(processed_variant.get(SCRIPT_INHERITANCE))
+		elif type_hint_script != null:
+			# Fallback to the type hint from the parent array/dictionary.
+			script = load(type_hint_script.get_path())
+		
+		if script != null:
+			return JsonClassConverter.json_to_class(script, processed_variant)
+		else:
+			return processed_variant
+	elif processed_variant is Array:
+		# Recursively call the array converter for nested arrays.
+		return _convert_json_to_array(processed_variant)
+	elif processed_variant is String and not processed_variant.is_empty():
+		# Try to convert string to a built-in Godot type (e.g., Vector2).
+		var str_var: Variant = str_to_var(processed_variant)
+		if str_var == null:
+			var json := JSON.new()
+			# Handle cases where a value is a stringified JSON object/array.
+			var error = json.parse(processed_variant)
+			if error == OK:
+				return json.get_data()
+		else:
+			return str_var
+	# primitive types (int, float, bool, null)
+	return processed_variant
 
 #endregion
 

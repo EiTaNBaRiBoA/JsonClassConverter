@@ -196,17 +196,10 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 					if property_value.is_typed() and property_value.get_typed_script():
 						arr_script = load(property_value.get_typed_script().get_path())
 						# Recursively convert the JSON array to a Godot array
-					var arrayTemp: Array = convert_json_to_array(value, arr_script)
-						
-						# Handle Vector arrays (convert string elements back to Vectors)
-					if type_string(property_value.get_typed_builtin()).begins_with("Vector"):
-						for obj_array: Variant in arrayTemp:
-							_class.get(property.name).append(str_to_var(type_string(property_value.get_typed_builtin()) + obj_array))
-					else:
-						_class.get(property.name).assign(arrayTemp)
+					_class.get(property.name).assign(_convert_json_to_array(value, arr_script))
 				# Case 3: Property is a Typed Dictionary
-				elif property_value is Dictionary and property_value.is_typed():
-					convert_json_to_dictionary(property_value, value)
+				elif property_value is Dictionary:
+					_convert_json_to_dictionary(property_value, value)
 				# Case 4: Property is a simple type (not an object or array)
 				else:
 					# Special handling for Color type (stored as a hex string)
@@ -221,7 +214,9 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 								for i: int in enum_keys.size():
 									if enum_keys[i].to_lower() == value.to_lower():
 										enum_value = int(enum_keys[i + 1])
-						_class.set(property.name, enum_value)
+						_class.set(property.name, int(enum_value))
+					elif property.type == TYPE_INT:
+						_class.set(property.name, int(value))
 					else:
 						_class.set(property.name, value)
 	# Return the fully deserialized class instance
