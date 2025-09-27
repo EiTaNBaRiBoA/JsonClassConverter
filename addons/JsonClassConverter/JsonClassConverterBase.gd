@@ -89,6 +89,8 @@ static func _serialize_variant(variant_value: Variant, is_parent_typed: bool = f
 		# To ensure type consistency on deserialization, we cast all ints to floats here.
 		return float(variant_value)
 	else:
+		if typeof(variant_value) == TYPE_COLOR:
+			return variant_value.to_html()
 		# For all other primitive types (float, string, bool), return as is.
 		return variant_value
 
@@ -107,14 +109,14 @@ static func _convert_json_to_dictionary(property_dict: Dictionary, json_dict: Di
 		property_dict.set(converted_key, converted_value)
 
 ## Helper function to recursively convert a JSON array to a Godot array.
-static func _convert_json_to_array(json_array: Array, type_hint_script: GDScript = null) -> Array:
+static func _convert_json_to_array(json_array: Array, type: Variant = null) -> Array:
 	var godot_array: Array = []
 	for element: Variant in json_array:
-		godot_array.append(_convert_variant(element, type_hint_script))
+		godot_array.append(_convert_variant(element, type))
 	return godot_array
 
 ## Converts a single Variant from JSON into its target Godot type.
-static func _convert_variant(json_variant: Variant, type_hint_script: GDScript = null) -> Variant:
+static func _convert_variant(json_variant: Variant, type: Variant = null) -> Variant:
 	var processed_variant: Variant = json_variant
 	# Process the variant based on its actual type.
 	if processed_variant is Dictionary:
@@ -122,9 +124,9 @@ static func _convert_variant(json_variant: Variant, type_hint_script: GDScript =
 		if SCRIPT_INHERITANCE in processed_variant:
 			# Prioritize script path embedded in the JSON data.
 			script = _get_gdscript(processed_variant.get(SCRIPT_INHERITANCE))
-		elif type_hint_script != null:
+		elif type is GDScript:
 			# Fallback to the type hint from the parent array/dictionary.
-			script = load(type_hint_script.get_path())
+			script = load(type.get_path())
 		
 		if script != null:
 			return JsonClassConverter.json_to_class(script, processed_variant)
@@ -135,6 +137,8 @@ static func _convert_variant(json_variant: Variant, type_hint_script: GDScript =
 		return _convert_json_to_array(processed_variant)
 	elif processed_variant is String and not processed_variant.is_empty():
 		# Try to convert string to a built-in Godot type (e.g., Vector2).
+		if type != null and type == TYPE_COLOR:
+			return Color(processed_variant)
 		var str_var: Variant = str_to_var(processed_variant)
 		if str_var == null:
 			var json := JSON.new()

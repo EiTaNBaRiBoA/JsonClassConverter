@@ -196,7 +196,10 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 					if property_value.is_typed() and property_value.get_typed_script():
 						arr_script = load(property_value.get_typed_script().get_path())
 						# Recursively convert the JSON array to a Godot array
-					_class.get(property.name).assign(_convert_json_to_array(value, arr_script))
+					if arr_script == null:
+						_class.get(property.name).assign(_convert_json_to_array(value, property_value.get_typed_builtin()))
+					else:
+						_class.get(property.name).assign(_convert_json_to_array(value, arr_script))
 				# Case 3: Property is a Typed Dictionary
 				elif property_value is Dictionary:
 					_convert_json_to_dictionary(property_value, value)
