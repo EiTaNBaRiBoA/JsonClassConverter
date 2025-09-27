@@ -72,3 +72,15 @@ static func _compare_recursive(a: Variant, b: Variant) -> Dictionary:
 			else:
 				# They are identical, so there is no difference.
 				return {}
+
+
+#region Json Utilties
+## Defines the types of operations that can be performed on the data structures.
+enum Operation {
+	Add, # Adds values. If key exists, combines them into an array.
+	AddDiffer, # Adds or merges values only if they are different.
+	Replace, # Replaces values in the base structure with values from the reference.
+	Remove, # Removes keys/values present in the reference structure from the base.
+	RemoveValue # Removes keys/values only if their values match the reference.
+}
+#endregion

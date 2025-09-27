@@ -136,123 +136,86 @@ static func _compare_arrays(a: Array, b: Array) -> Dictionary:
 
 #region Operation Helpers
 
-# removes keys from json_modify using the json_ref as a reference
-static func _apply_keys_recursively(operation_type: JsonClassConverter.Operation, json_modify: Variant, json_ref: Variant) -> Variant:
-# We determine the type of the data to process it accordingly.
-	if json_ref is Dictionary:
-		# Iterate over a copy of the keys, as we will be modifying the
-		# dictionary during the loop, which is not safe otherwise.
-		for key in json_ref.keys():
-			# Check if the key exists in the dictionary of keys to remove.
-			if json_modify.has(key):
-				if (operation_type == JsonClassConverter.Operation.RemoveValue):
-					if (operation_key_value(operation_type, json_modify, key, json_modify[key], json_ref[key])):
-						continue
-					else:
-						# If the key was not erased (either because the key didn't match the removal dict,
-						# or the key matched but the value didn't), we recurse into the value.
-						operation_key_value(operation_type, json_modify, key, json_modify[key], _apply_keys_recursively(operation_type, json_modify[key], json_ref[key]))
-				else: # remove , replace , add , addDiffer (for add and replace we need recursive if they are the same value key)
-					operation_key_value(operation_type, json_modify, key, json_modify[key], json_ref[key])
-			else:
-				# Adding new key to json_modify
-				operation_key_value(operation_type, json_modify, key, null, json_ref[key])
-	elif json_ref is Array:
-		if json_modify is not Array:
-			return json_ref
-		# If the data is an array, we simply recurse into each of its elements.
-		for i in json_ref:
-			var new_value = _apply_keys_recursively(operation_type, json_modify[i], json_ref[i])
-			match operation_type:
-				JsonClassConverter.Operation.Remove || JsonClassConverter.Operation.RemoveValue:
-					if new_value == null:
-						json_modify.remove_at(i)
-				_:
-					json_modify[i] = new_value
-	else: # not object or array or dict than primitive
-		return operation_values(operation_type, json_modify, json_ref)
-	return json_modify
+## Recursively applies an operation to a variant. Dispatches to dictionary/array handlers.
+static func _apply_operation_recursively(base_var: Variant, ref_var: Variant, op_type: Operation) -> Variant:
+	if ref_var is Dictionary and base_var is Dictionary:
+		return _process_dictionary(base_var, ref_var, op_type)
+	elif ref_var is Array and base_var is Array:
+		return _process_array(base_var, ref_var, op_type)
+	else:
+		# Handle primitives or type mismatches
+		return _process_primitive(base_var, ref_var, op_type)
 
-## Works on dictionaries only
-static func operation_key_value(operation_type: JsonClassConverter.Operation, json_modify: Variant, key: Variant, old_value: Variant, new_value: Variant) -> bool:
-	match operation_type:
-		JsonClassConverter.Operation.Add:
-			if old_value is Array:
-				old_value.append_array(new_value)
-				return true
-			elif old_value != null:
-				json_modify[key] = [old_value, new_value]
-				return true
-			else:
-				json_modify[key] = new_value
-				return true
-		JsonClassConverter.Operation.AddDiffer:
-			if old_value is Array && new_value is Array:
-				if not old_value.hash() == new_value.hash():
-					for element in new_value: # Start with a duplicate of the first array
-						if not json_modify[key].has(element): # Check if the element from array2 is already in merged_array
-							json_modify[key].append(element) # If not, append it
-							return true
-			elif old_value is Dictionary && new_value is Dictionary:
-				json_modify[key] = _apply_keys_recursively(operation_type, old_value, new_value)
-			else:
-				json_modify[key] = new_value
-				return true
-		JsonClassConverter.Operation.Replace:
-				if (old_value == new_value):
-					return false # same value to the key nothing to replace
-				else:
-					json_modify[key] = new_value
-					return true # successfully replaced the value of a key
-		JsonClassConverter.Operation.Remove:
-			json_modify.erase(key)
-		JsonClassConverter.Operation.RemoveValue:
-			if old_value is Array && new_value is Array:
-				if not old_value.hash() == new_value.hash():
-					for element in new_value: # Start with a duplicate of the first array
-						if not old_value.has(element): # Check if the element from array2 is already in merged_array
-							old_value.erase(element) # If not, remove it
-							return true
-				elif old_value.hash() == new_value.hash():
-					json_modify.erase(key)
-					return true # success removed the key
-				elif new_value == null:
-					json_modify.erase(key)
-				 	# if we want to remove a key by a specific value null specifically 
-				 	# "test" : 1 , we pass "test" : null and it will delete the key
-					return true
-			elif old_value is Dictionary && new_value is Dictionary:
-				json_modify[key] = _apply_keys_recursively(operation_type, old_value, new_value)
-				if json_modify[key] == null:
-					json_modify.erase(key)
-			else:
-				if old_value == new_value:
-					json_modify.erase(key)
-					return true
-				else:
-					return false
-	return false # couldn't complete operation
-#endregion
 
-## Works on primitives only
-static func operation_values(operation_type: JsonClassConverter.Operation, old_value: Variant, new_value: Variant) -> Variant:
-	match operation_type:
-		JsonClassConverter.Operation.Add:
-			return [old_value, new_value]
-		JsonClassConverter.Operation.AddDiffer:
-			if old_value == new_value:
-				return old_value
+## Handles the recursive operation logic for Dictionaries.
+static func _process_dictionary(base_dict: Dictionary, ref_dict: Dictionary, op_type: Operation) -> Dictionary:
+	for key in ref_dict:
+		var ref_value = ref_dict[key]
+		
+		if base_dict.has(key):
+			var base_value = base_dict[key]
+			var result = _apply_operation_recursively(base_value, ref_value, op_type)
+			
+			# For remove operations, a null result signifies deletion.
+			if result == null and (op_type == Operation.Remove or op_type == Operation.RemoveValue):
+				base_dict.erase(key)
 			else:
-				return [old_value, new_value]
-		JsonClassConverter.Operation.Replace:
-			return new_value
-		JsonClassConverter.Operation.Remove:
-			return null # later using operationtype we could remove the key
-		JsonClassConverter.Operation.RemoveValue:
-			if (old_value == new_value):
-				return null
-				 # if we want to remove a key by a specific value null specifically 
-				 # "test" : 1 , we pass "test" : null and it will delete the key
-			else:
-				return old_value
-	return old_value # couldn't complete operation
+				base_dict[key] = result
+		
+		# If the key doesn't exist in base, add it (for relevant operations).
+		elif op_type == Operation.Add or op_type == Operation.AddDiffer or op_type == Operation.Replace:
+			base_dict[key] = ref_value
+			
+	return base_dict
+
+
+## Handles the recursive operation logic for Arrays.
+static func _process_array(base_arr: Array, ref_arr: Array, op_type: Operation) -> Array:
+	match op_type:
+		Operation.Add, Operation.AddDiffer:
+			for item in ref_arr:
+				if not base_arr.has(item):
+					base_arr.append(item)
+			return base_arr
+		
+		Operation.Replace:
+			# Replacing an array means returning the reference array.
+			return ref_arr
+			
+		Operation.Remove, Operation.RemoveValue:
+			# Filter the base array, keeping only items NOT in the reference array.
+			var new_arr: Array = []
+			for item in base_arr:
+				if not ref_arr.has(item):
+					new_arr.append(item)
+			return new_arr
+			
+	return base_arr
+
+
+## Handles the operation logic for primitive values.
+static func _process_primitive(base_val: Variant, ref_val: Variant, op_type: Operation) -> Variant:
+	match op_type:
+		Operation.Add:
+			return [base_val, ref_val]
+		Operation.AddDiffer:
+			return base_val if base_val == ref_val else [base_val, ref_val]
+		Operation.Replace:
+			return ref_val
+		Operation.Remove:
+			# A null return signals to the dictionary processor to erase the key.
+			return null
+		Operation.RemoveValue:
+			return null if base_val == ref_val else base_val
+	return base_val
+
+
+## Helper to safely get a Dictionary from a Variant (JSON string or Dictionary).
+static func _get_dict_from_type(data: Variant) -> Dictionary:
+	if data is Dictionary:
+		return data
+	if data is String:
+		var json = JSON.parse_string(data)
+		if json is Dictionary:
+			return json
+	return {}

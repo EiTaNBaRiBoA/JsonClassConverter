@@ -233,34 +233,32 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 
 
 #region Json Utilties
-## Checks if two jsons are equal, can recieve json string, file path , dictionary
-static func check_equal_json_files(first_json: Variant, second_json: Variant) -> bool:
-	if _get_dict_from_type(first_json).hash() == _get_dict_from_type(second_json).hash():
-		return true
-	return false
 
-## finds between two jsons the diff and returns the diff dictionary showing old value and new value
+## Finds the differences between two JSON-like structures.
+## Returns a dictionary showing the old and new values for each changed key.
 static func compare_jsons_diff(first_json: Variant, second_json: Variant) -> Dictionary:
-	var first_dict: Dictionary = _get_dict_from_type(first_json)
-	var second_dict: Dictionary = _get_dict_from_type(second_json)
-	if check_equal_json_files(first_dict, second_dict):
+	var first_dict := _get_dict_from_type(first_json)
+	var second_dict := _get_dict_from_type(second_json)
+	if first_dict.hash() == second_dict.hash():
 		return {}
+	# return _compare_recursive(first_dict, second_dict)
 	return _compare_recursive(first_dict, second_dict)
 
-## operations between two json from and to differences between one json to the other json
-static func json_operation(from_json: Variant, json_ref: Variant, operation_type: Operation) -> Dictionary:
-	var first_dict: Dictionary = _get_dict_from_type(from_json)
-	var second_dict: Dictionary = _get_dict_from_type(json_ref)
-	if check_equal_json_files(first_dict, second_dict) && operation_type != Operation.Add:
+
+## Performs a specified operation on a JSON structure ('base_json') using another
+## ('ref_json') as a reference.
+## Returns the modified dictionary.
+static func json_operation(base_json: Variant, ref_json: Variant, operation_type: Operation) -> Dictionary:
+	# Ensure we are working with deep copies to avoid modifying original inputs.
+	var base_dict: Dictionary = _get_dict_from_type(base_json).duplicate(true)
+	var ref_dict: Dictionary = _get_dict_from_type(ref_json)
+
+	if base_dict.hash() == ref_dict.hash():
 		if operation_type == Operation.Replace:
-			return first_dict
-		else:
+			return base_dict
+		if operation_type != Operation.Add:
 			return {}
-	return JsonClassHelpers._apply_keys_recursively(operation_type, first_dict, second_dict)
 
-
-enum Operation {
-	Add, AddDiffer, Replace, Remove, RemoveValue
-}
+	return JsonClassHelpers._apply_operation_recursively(base_dict, ref_dict, operation_type)
 
 #endregion
