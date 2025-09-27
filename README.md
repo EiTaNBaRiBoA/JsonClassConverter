@@ -140,10 +140,10 @@ var dict1 = {"name": "Alice", "score": 100}
 var dict2 = {"name": "Alice", "score": 100}
 var dict3 = {"name": "Bob", "score": 150}
 
-var are_equal = JsonClassConverter.check_equal_json_files(dict1, dict2)
+var are_equal = JsonClassConverter.check_equal_jsons(dict1, dict2)
 print(are_equal) # Output: true
 
-var are_different = JsonClassConverter.check_equal_json_files(dict1, dict3)
+var are_different = JsonClassConverter.check_equal_jsons(dict1, dict3)
 print(are_different) # Output: false
 ```
 

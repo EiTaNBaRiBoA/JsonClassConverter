@@ -234,6 +234,12 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 
 #region Json Utilties
 
+## Checks if two jsons are equal, can recieve json string, file path , dictionary
+static func check_equal_jsons(first_json: Variant, second_json: Variant) -> bool:
+	if _get_dict_from_type(first_json).hash() == _get_dict_from_type(second_json).hash():
+		return true
+	return false
+
 ## Finds the differences between two JSON-like structures.
 ## Returns a dictionary showing the old and new values for each changed key.
 static func compare_jsons_diff(first_json: Variant, second_json: Variant) -> Dictionary:
