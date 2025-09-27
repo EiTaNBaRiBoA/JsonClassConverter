@@ -257,7 +257,7 @@ static func json_operation(base_json: Variant, ref_json: Variant, operation_type
 	if base_dict.hash() == ref_dict.hash():
 		if operation_type == Operation.Replace:
 			return base_dict
-		if operation_type != Operation.Add:
+		if operation_type == Operation.Remove || operation_type == Operation.RemoveValue:
 			return {}
 	return JsonClassHelpers.apply_operation_recursively(base_dict, ref_dict, operation_type)
 
