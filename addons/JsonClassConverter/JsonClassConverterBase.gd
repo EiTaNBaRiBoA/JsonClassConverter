@@ -84,7 +84,7 @@ static func _serialize_variant(variant_value: Variant, is_parent_typed: bool = f
 		return convert_dictionary_to_json(variant_value)
 	elif type_string(typeof(variant_value)).begins_with("Vector"):
 		return var_to_str(variant_value)
-	elif variant_value is int:
+	elif variant_value is int and not is_parent_typed:
 		# Godot's JSON.parse_string treats all numbers as floats.
 		# To ensure type consistency on deserialization, we cast all ints to floats here.
 		return float(variant_value)
