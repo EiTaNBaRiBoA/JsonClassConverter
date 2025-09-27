@@ -73,22 +73,23 @@ static func apply_operation_recursively(base_var: Variant, ref_var: Variant, op_
 ## Handles the recursive operation logic for Dictionaries.
 static func _process_dictionary(base_dict: Dictionary, ref_dict: Dictionary, op_type: Operation) -> Dictionary:
 	for key in ref_dict:
-		var ref_value = ref_dict[key]
-		
-		if base_dict.has(key):
-			var base_value = base_dict[key]
-			var result = apply_operation_recursively(base_value, ref_value, op_type)
+		if key != SCRIPT_INHERITANCE:
+			var ref_value = ref_dict[key]
 			
-			# For remove operations, a null result signifies deletion.
-			if result == null and (op_type == Operation.Remove or op_type == Operation.RemoveValue):
-				base_dict.erase(key)
-			else:
-				base_dict[key] = result
-		
-		# If the key doesn't exist in base, add it (for relevant operations).
-		elif op_type == Operation.Add or op_type == Operation.AddDiffer or op_type == Operation.Replace:
-			base_dict[key] = ref_value
+			if base_dict.has(key):
+				var base_value = base_dict[key]
+				var result = apply_operation_recursively(base_value, ref_value, op_type)
+				
+				# For remove operations, a null result signifies deletion.
+				if result == null and (op_type == Operation.Remove or op_type == Operation.RemoveValue):
+					base_dict.erase(key)
+				else:
+					base_dict[key] = result
 			
+			# If the key doesn't exist in base, add it (for relevant operations).
+			elif op_type == Operation.Add or op_type == Operation.AddDiffer or op_type == Operation.Replace:
+				base_dict[key] = ref_value
+				
 	return base_dict
 
 
@@ -97,7 +98,7 @@ static func _process_array(base_arr: Array, ref_arr: Array, op_type: Operation) 
 	match op_type:
 		Operation.Add, Operation.AddDiffer:
 			for item in ref_arr:
-				if not base_arr.has(item):
+				if not base_arr.has(item) || op_type == Operation.Add:
 					base_arr.append(item)
 			return base_arr
 		
