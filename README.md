@@ -28,8 +28,8 @@ This GDScript provides a powerful set of utility functions for converting Godot 
 
 ## Installation
 
-1. **Download:** Download the `JsonClassConverter.gd` file from this repository.
-2. **Add to Project:** Place the `JsonClassConverter.gd` file in your Godot project folder (e.g., in a `scripts/` directory).
+1. **Download:** Download the project from this repository.
+2. **Add to Project:** Place the addons folder in your Godot project folder (e.g., in a `scripts/` directory).
 
 ## Usage
 
