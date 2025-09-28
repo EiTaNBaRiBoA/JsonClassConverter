@@ -119,7 +119,7 @@ static func _convert_json_to_array(json_array: Array, type: Variant = null) -> A
 static func _convert_variant(json_variant: Variant, type: Variant = null) -> Variant:
 	var processed_variant: Variant = json_variant
 	# Process the variant based on its actual type.
-	if processed_variant is Dictionary:
+	if processed_variant is Dictionary or type is Object:
 		var script: GDScript = null
 		if SCRIPT_INHERITANCE in processed_variant:
 			# Prioritize script path embedded in the JSON data.
@@ -129,6 +129,8 @@ static func _convert_variant(json_variant: Variant, type: Variant = null) -> Var
 			script = load(type.get_path())
 		
 		if script != null:
+			if processed_variant is String:
+				return JsonClassConverter.json_to_class(script, JSON.parse_string(processed_variant))
 			return JsonClassConverter.json_to_class(script, processed_variant)
 		else:
 			return processed_variant
@@ -137,7 +139,7 @@ static func _convert_variant(json_variant: Variant, type: Variant = null) -> Var
 		return _convert_json_to_array(processed_variant)
 	elif processed_variant is String and not processed_variant.is_empty():
 		# Try to convert string to a built-in Godot type (e.g., Vector2).
-		if type != null and type == TYPE_COLOR:
+		if type != null and type is int and type == TYPE_COLOR:
 			return Color(processed_variant)
 		var str_var: Variant = str_to_var(processed_variant)
 		if str_var == null:
