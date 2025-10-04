@@ -1,4 +1,4 @@
-@abstract class_name JsonClassConverter extends JsonClassConverterBase
+@abstract class_name JsonForge extends JsonForgeBase
 
 
 #region Class to Json
@@ -20,8 +20,8 @@ static func store_json_file(file_path: String, data: Dictionary, security_key: S
 	return true
 
 ## Converts a Godot class instance into a JSON string.
-static func class_to_json_string(_class: Object) -> String:
-	return JSON.stringify(class_to_json(_class))
+static func class_to_json_string(_class: Object, specify_class: bool = false) -> String:
+	return JSON.stringify(class_to_json(_class, specify_class))
 
 ## Converts a Godot class instance into a JSON dictionary, specify_class for manual class specifying (true under inheritance).
 ## This is the core serialization function.
@@ -34,38 +34,37 @@ static func class_to_json(_class: Object, specify_class: bool = false) -> Dictio
 
 	# Iterate through each property of the class
 	for property: Dictionary in properties:
-		var property_name: String = property["name"]
+		var property_name: String = property.get("name")
 		# Skip the built-in 'script' property
 		if property_name == "script":
 			continue
 		var property_value: Variant = _class.get(property_name)
-		
 		# Only serialize properties that are exported or marked for storage
-		if not property_name.is_empty() and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE and property.usage & PROPERTY_USAGE_STORAGE > 0:
+		if not property_name.is_empty() and _check_valid_property(property):
 			if property_value is Array:
 				# Recursively convert arrays to JSON
-				dictionary[property_name] = convert_array_to_json(property_value)
+				dictionary.set(property_name, convert_array_to_json(property_value))
 			elif property_value is Dictionary:
 				# Recursively convert dictionaries to JSON
-				dictionary[property_name] = convert_dictionary_to_json(property_value)
+				dictionary.set(property_name, convert_dictionary_to_json(property_value))
 			# If the property is a Resource:
 			elif property["type"] == TYPE_OBJECT and property_value != null and property_value.get_property_list():
 				if property_value is Resource and ResourceLoader.exists(property_value.resource_path):
 					var main_src: String = _get_main_tres_path(property_value.resource_path)
 					if main_src.get_extension() != "tres":
 						# Store the resource path if it's not a .tres file
-						dictionary[property.name] = property_value.resource_path
+						dictionary.set(property_name, property_value.resource_path)
 					else:
 						# Recursively serialize the nested resource
-						dictionary[property.name] = class_to_json(property_value)
+						dictionary.set(property_name, class_to_json(property_value))
 				else:
-					dictionary[property.name] = class_to_json(property_value, property.class_name != property_value.get_script().get_global_name())
+					dictionary.set(property_name, class_to_json(property_value, property.class_name != property_value.get_script().get_global_name()))
 			# Special handling for Vector types (store as strings)
 			elif type_string(typeof(property_value)).begins_with("Vector"):
 				dictionary[property_name] = var_to_str(property_value)
-			elif property["type"] == TYPE_COLOR:
+			elif property.get("type") == TYPE_COLOR:
 				# Store Color as a hex string
-				dictionary[property_name] = property_value.to_html()
+				dictionary.set(property_name, property_value.to_html())
 			else:
 				# Store other basic types directly
 				if property.type == TYPE_INT and property.hint == PROPERTY_HINT_ENUM:
@@ -73,11 +72,11 @@ static func class_to_json(_class: Object, specify_class: bool = false) -> Dictio
 					for enum_value: String in enum_params.split(","):
 						if enum_value.contains(":"):
 							if property_value == str_to_var(enum_value.split(":")[1]):
-								dictionary[property.name] = enum_value.split(":")[0]
+								dictionary.set(property_name, enum_value.split(":")[0])
 						else:
-							dictionary[property.name] = enum_value
+							dictionary.set(property_name, enum_value)
 				else:
-					dictionary[property.name] = property_value
+					dictionary.set(property_name, property_value)
 	return dictionary
 
 #endregion
@@ -164,7 +163,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 			var property_value: Variant = _class.get(property.name)
 			
 			# If the property name matches the JSON key and is a script variable:
-			if property.name == key and property.usage >= PROPERTY_USAGE_SCRIPT_VARIABLE:
+			if property.name == key and _check_valid_property(property):
 				# Case 1: Property is an Object (not an array)
 				if not property_value is Array and property.type == TYPE_OBJECT:
 					var inner_class_path: String = ""
@@ -208,7 +207,7 @@ static func json_to_class(castClass: GDScript, json: Dictionary) -> Object:
 					# Special handling for Color type (stored as a hex string)
 					if property.type == TYPE_COLOR:
 						value = Color(value)
-					if property.type == TYPE_INT and property.hint == PROPERTY_HINT_ENUM:
+					if property.get("type") == TYPE_INT and property.get("hint") == PROPERTY_HINT_ENUM:
 						var enum_strs: Array = property.hint_string.split(",")
 						var enum_value: int = 0
 						for enum_str: String in enum_strs:
@@ -243,7 +242,7 @@ static func compare_jsons_diff(first_json: Variant, second_json: Variant) -> Dic
 	var second_dict := _get_dict_from_type(second_json)
 	if first_dict.hash() == second_dict.hash():
 		return {}
-	return JsonClassHelpers.compare_recursive(first_dict, second_dict)
+	return JsonForgeHelper.compare_recursive(first_dict, second_dict)
 
 
 ## Performs a specified operation on a JSON structure ('base_json') using another
@@ -259,6 +258,6 @@ static func json_operation(base_json: Variant, ref_json: Variant, operation_type
 			return base_dict
 		if operation_type == Operation.Remove || operation_type == Operation.RemoveValue:
 			return {}
-	return JsonClassHelpers.apply_operation_recursively(base_dict, ref_dict, operation_type)
+	return JsonForgeHelper.apply_operation_recursively(base_dict, ref_dict, operation_type)
 
 #endregion

@@ -1,6 +1,9 @@
-@abstract class_name JsonClassConverterBase
+@abstract class_name JsonForgeBase
 
 const SCRIPT_INHERITANCE = "script_inheritance"
+
+## If ture only exported values will be serialized or deserialized.
+static var only_exported_values: bool = false
 
 #region Checks and Gets
 
@@ -15,6 +18,10 @@ static func _check_cast_class(castClass: GDScript) -> bool:
 		printerr("The provided class is null.")
 		return false
 	return true
+
+## Checks if a property should be included during serialization or deserialization.
+static func _check_valid_property(property: Variant) -> bool:
+	return property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE and (!only_exported_values or property.usage & PROPERTY_USAGE_STORAGE)
 
 ## Helper function to find a GDScript by its class name.
 static func _get_gdscript(hint_class: String) -> GDScript:
@@ -37,12 +44,12 @@ static func _get_dict_from_type(json: Variant) -> Dictionary:
 	if json is Dictionary:
 		dict = json
 	elif json is Object:
-		dict = JsonClassConverter.class_to_json(json)
+		dict = JsonForge.class_to_json(json)
 	else:
 		var result = JSON.parse_string(json)
 		if result == null:
 			#first_json is not a file json string , loading it from path
-			dict = JsonClassConverter.json_file_to_dict(json)
+			dict = JsonForge.json_file_to_dict(json)
 		else:
 			dict = result
 	return dict
@@ -77,7 +84,7 @@ static func _serialize_variant(variant_value: Variant, is_parent_typed: bool = f
 	if variant_value is Object:
 		# If the parent is typed, the script path isn't needed. If untyped, it is.
 		var specify_script = not is_parent_typed
-		return JsonClassConverter.class_to_json(variant_value, specify_script)
+		return JsonForge.class_to_json(variant_value, specify_script)
 	elif variant_value is Array:
 		return convert_array_to_json(variant_value)
 	elif variant_value is Dictionary:
@@ -130,8 +137,8 @@ static func _convert_variant(json_variant: Variant, type: Variant = null) -> Var
 		
 		if script != null:
 			if processed_variant is String:
-				return JsonClassConverter.json_to_class(script, JSON.parse_string(processed_variant))
-			return JsonClassConverter.json_to_class(script, processed_variant)
+				return JsonForge.json_to_class(script, JSON.parse_string(processed_variant))
+			return JsonForge.json_to_class(script, processed_variant)
 		else:
 			return processed_variant
 	elif processed_variant is Array:

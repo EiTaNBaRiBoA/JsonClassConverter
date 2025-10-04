@@ -1,4 +1,4 @@
-@abstract class_name JsonClassHelpers extends JsonClassConverterBase
+@abstract class_name JsonForgeHelper extends JsonForgeBase
 
 #region Comparison
 
