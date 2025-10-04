@@ -1,6 +1,6 @@
 # JsonClassConverter
 
-This GDScript provides a powerful set of utility functions for converting Godot classes to JSON dictionaries and vice versa, simplifying serialization and deserialization tasks.
+Simplify your Godot save/load systems with this GDScript singleton. Effortlessly serialize any class to JSON and deserialize back, with automatic handling of Godot types. Go beyond basic conversion with advanced tools to compare, find differences, and apply patches to your game or app data.
 
 ## Features
 
